@@ -1,0 +1,15 @@
+[package]
+name = "mutagen-runtime"
+description = "Orchestration/runtime layer for Mutagen."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+mutagen-core = { path = "../mutagen-core" }
+
+[lints]
+workspace = true

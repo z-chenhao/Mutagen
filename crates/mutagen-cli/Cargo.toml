@@ -1,0 +1,16 @@
+[package]
+name = "mutagen-cli"
+description = "Command-line interface for Mutagen."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+mutagen-runtime = { path = "../mutagen-runtime" }
+
+[lints]
+workspace = true

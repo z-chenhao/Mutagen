@@ -1,0 +1,12 @@
+# Build artifacts
+/target
+**/*.rs.bk
+
+# Environment & local overrides
+.env
+*.local.md
+
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
