@@ -40,9 +40,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -52,9 +50,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -64,9 +60,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -77,7 +71,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -89,7 +82,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -101,7 +93,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -113,8 +104,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -125,8 +115,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -137,93 +126,18 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         }
       ]
     },
     "argument_change": {
-      "count": 9,
+      "count": 3,
       "task_ids": [
-        "T3",
-        "T4",
         "T5"
       ],
       "pairs": [
         {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 1,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 2,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 3,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T4",
-          "task_name": "conditional_write",
-          "repetition": 1,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "repeated_count_change",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T4",
-          "task_name": "conditional_write",
-          "repetition": 2,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "repeated_count_change",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T4",
-          "task_name": "conditional_write",
-          "repetition": 3,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "repeated_count_change",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
           "task_id": "T5",
           "task_name": "unrelated_read_after_write",
           "repetition": 1,
@@ -231,8 +145,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -243,8 +156,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -255,8 +167,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         }
       ]
@@ -310,9 +221,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -322,9 +231,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -334,9 +241,7 @@
           "eligible": true,
           "tags": [
             "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "novel_call"
           ]
         },
         {
@@ -347,8 +252,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -359,8 +263,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         },
         {
@@ -371,8 +274,7 @@
           "tags": [
             "added_call",
             "novel_call",
-            "argument_change",
-            "state_effect_order_change"
+            "argument_change"
           ]
         }
       ]
@@ -401,7 +303,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -413,7 +314,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -425,57 +325,18 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         }
       ]
     },
     "state_effect_order_change": {
-      "count": 9,
+      "count": 3,
       "task_ids": [
-        "T3",
-        "T4",
-        "T5"
+        "T4"
       ],
       "pairs": [
         {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 1,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 2,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T3",
-          "task_name": "write_x",
-          "repetition": 3,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
           "task_id": "T4",
           "task_name": "conditional_write",
           "repetition": 1,
@@ -483,7 +344,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -495,7 +355,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
             "state_effect_order_change"
           ]
         },
@@ -507,43 +366,6 @@
           "tags": [
             "added_call",
             "repeated_count_change",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T5",
-          "task_name": "unrelated_read_after_write",
-          "repetition": 1,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T5",
-          "task_name": "unrelated_read_after_write",
-          "repetition": 2,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
-            "state_effect_order_change"
-          ]
-        },
-        {
-          "task_id": "T5",
-          "task_name": "unrelated_read_after_write",
-          "repetition": 3,
-          "eligible": true,
-          "tags": [
-            "added_call",
-            "novel_call",
-            "argument_change",
             "state_effect_order_change"
           ]
         }
@@ -573,9 +395,7 @@
       "eligible_pairs": 3,
       "tags": [
         "added_call",
-        "argument_change",
-        "novel_call",
-        "state_effect_order_change"
+        "novel_call"
       ],
       "non_exact_pairs": 3
     },
@@ -585,7 +405,6 @@
       "eligible_pairs": 3,
       "tags": [
         "added_call",
-        "argument_change",
         "repeated_count_change",
         "state_effect_order_change"
       ],
@@ -598,8 +417,7 @@
       "tags": [
         "added_call",
         "argument_change",
-        "novel_call",
-        "state_effect_order_change"
+        "novel_call"
       ],
       "non_exact_pairs": 3
     },
@@ -629,6 +447,16 @@
     "tool_execution_time_us": 113,
     "kernel_overhead_estimate_ms": 0,
     "episodes": 36
+  },
+  "usage": {
+    "prompt_tokens": 52731,
+    "completion_tokens": 6121,
+    "total_tokens": 58852,
+    "model_requests": 93,
+    "episodes": 36,
+    "cached_prefix_tokens": null,
+    "effective_uncached_prefill_tokens": null,
+    "note": "The raw artifact persists only prompt/completion/total tokens per episode. The provider's prefix-cache accounting and its reasoning/visible-text split were not persisted by the 0006 parser, so cached_prefix_tokens and effective_uncached_prefill_tokens are null (not zero): the run-time prefix-cache hit rate is UNKNOWN from this artifact. completion_tokens includes reasoning and cannot be decomposed. prompt_tokens is nominal (full prompt per request), not uncached prefill work. The one-line candidate mutation is a system-prompt change; it does not alter the recorded token accounting mechanism."
   },
   "conclusion": "inconclusive"
 }

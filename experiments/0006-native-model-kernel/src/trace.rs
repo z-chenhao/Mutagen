@@ -250,26 +250,49 @@ fn counts(calls: &[CallRef]) -> BTreeMap<String, usize> {
     m
 }
 
-fn args_multiset(calls: &[CallRef], tool: &str) -> BTreeMap<String, usize> {
-    let mut m: BTreeMap<String, usize> = BTreeMap::new();
+/// The *unique* canonical argument identities issued for one tool name,
+/// as a set: insensitive to call order and to call multiplicity.
+fn unique_args(calls: &[CallRef], tool: &str) -> BTreeSetLite {
+    let mut s = BTreeSetLite::new();
     for c in calls.iter().filter(|c| c.tool == tool) {
-        *m.entry(c.identity.clone()).or_default() += 1;
+        s.insert(c.identity.clone());
     }
-    m
+    s
 }
 
-/// The relative order of writes and reads of the *same key*, projected
-/// as the ordered pattern of operations on each key, for both runs.
-fn state_op_pattern(calls: &[CallRef], key: StateKey) -> Vec<String> {
-    calls
-        .iter()
-        .filter(|c| c.key == Some(key))
-        .map(|c| match c.tool.as_str() {
-            "state_write" => "W".to_string(),
-            "state_read" => "R".to_string(),
-            _ => unreachable!("only state tools exist"),
-        })
-        .collect()
+/// The write/read *relation* on one key, projected as a 2-bit signature
+/// `(write_before_read, read_before_write)`: whether the trajectory
+/// contains at least one write of the key before at least one read of
+/// the key, and vice versa.
+///
+/// Returns `None` for keys on which the trajectory performs fewer than
+/// one write or fewer than one read: without both operations the
+/// write/read relation is undefined, and presence/count differences are
+/// the domain of `added_call` / `omitted_call` /
+/// `repeated_count_change`, not of this tag.
+fn state_relations(calls: &[CallRef], key: StateKey) -> Option<(bool, bool)> {
+    let mut writes = 0usize;
+    let mut reads = 0usize;
+    let mut write_before_read = false;
+    let mut read_before_write = false;
+    for c in calls.iter().filter(|c| c.key == Some(key)) {
+        if c.tool == "state_write" {
+            if reads > 0 {
+                write_before_read = true;
+            }
+            writes += 1;
+        } else {
+            if writes > 0 {
+                read_before_write = true;
+            }
+            reads += 1;
+        }
+    }
+    if writes > 0 && reads > 0 {
+        Some((write_before_read, read_before_write))
+    } else {
+        None
+    }
 }
 
 /// Compute all tags that apply to one baseline/candidate pair.
@@ -331,30 +354,60 @@ pub fn trajectory_tags(
         tags.push(TrajectoryTag::RepeatedCountChange);
     }
 
-    // argument_change: same tool name, different arguments across runs.
-    let mut tools: BTreeSetLite = BTreeSetLite::new();
-    for x in b.iter().chain(c.iter()) {
-        tools.insert(x.tool.clone());
+    // argument_change: for a tool name present in *both* trajectories,
+    // the set of distinct arguments differs across runs. Deliberately
+    // insensitive to call order and to multiplicity: a count difference
+    // is the domain of `added_call` / `omitted_call` /
+    // `repeated_count_change`, and a tool absent from one run (0 -> n)
+    // is the domain of `added_call` / `novel_call`.
+    let mut common_tools = BTreeSetLite::new();
+    let b_tools: BTreeSetLite = {
+        let mut s = BTreeSetLite::new();
+        for x in &b {
+            s.insert(x.tool.clone());
+        }
+        s
+    };
+    let c_tools: BTreeSetLite = {
+        let mut s = BTreeSetLite::new();
+        for x in &c {
+            s.insert(x.tool.clone());
+        }
+        s
+    };
+    for t in b_tools.iter() {
+        if c_tools.contains(t) {
+            common_tools.insert(t.clone());
+        }
     }
-    if tools
+    if common_tools
         .iter()
-        .any(|tool| args_multiset(&b, tool) != args_multiset(&c, tool))
+        .any(|tool| unique_args(&b, tool) != unique_args(&c, tool))
     {
         tags.push(TrajectoryTag::ArgumentChange);
     }
 
-    // state_effect_order_change: the ordered W/R pattern on some key differs.
-    if state_op_pattern(&b, StateKey::X) != state_op_pattern(&c, StateKey::X)
-        || state_op_pattern(&b, StateKey::Y) != state_op_pattern(&c, StateKey::Y)
-    {
-        tags.push(TrajectoryTag::StateEffectOrderChange);
+    // state_effect_order_change: for a key on which *both* trajectories
+    // perform at least one read AND at least one write, the write/read
+    // relation differs (e.g. W-then-R vs R-then-W, or an inserted read
+    // that inverts part of the order). Keys where one side lacks reads
+    // or writes are not characterized: pure presence or multiplicity
+    // changes belong to the count tags, so this tag is independent of
+    // `added_call` / `repeated_count_change` for those cases.
+    for key in [StateKey::X, StateKey::Y] {
+        if let (Some(rb), Some(rc)) = (state_relations(&b, key), state_relations(&c, key)) {
+            if rb != rc {
+                tags.push(TrajectoryTag::StateEffectOrderChange);
+                break;
+            }
+        }
     }
 
     tags
 }
 
 /// Minimal sorted set to avoid pulling in `ordered_set`.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 struct BTreeSetLite(BTreeMap<String, bool>);
 
 impl BTreeSetLite {
@@ -363,6 +416,9 @@ impl BTreeSetLite {
     }
     fn insert(&mut self, s: String) {
         self.0.insert(s, true);
+    }
+    fn contains(&self, s: &str) -> bool {
+        self.0.contains_key(s)
     }
     fn iter(&self) -> impl Iterator<Item = &String> {
         self.0.keys()
@@ -431,6 +487,43 @@ pub struct VerificationSummary {
     pub successful_writes: usize,
     pub verified_writes: usize,
     pub verification_rate: Option<f64>,
+}
+
+/// Token usage accounting for the whole run (audit §24).
+///
+/// The raw artifact persists `usage = {prompt_tokens, completion_tokens,
+/// total_tokens}` per episode (summed over that episode's model
+/// requests). The 0006 response parser discarded every other usage
+/// field the provider sent, so categories the artifact does not contain
+/// are `null` with an explicit note — never estimated.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UsageSummary {
+    /// Nominal prompt tokens over all model requests of all episodes.
+    /// Per the serving stack's semantics this counts the *full* prompt
+    /// of every request, including any prefix it served from its prefix
+    /// cache; it is not the amount of prefill compute performed.
+    pub prompt_tokens: u64,
+    /// Output tokens over all model requests. Includes reasoning and
+    /// visible text; the 0006 parser did not separate the two, so the
+    /// reasoning share is not recoverable from this artifact.
+    pub completion_tokens: u64,
+    /// `prompt_tokens + completion_tokens` as reported per request.
+    pub total_tokens: u64,
+    /// Number of model requests issued (one per model turn).
+    pub model_requests: u64,
+    /// Episodes covered (all 36, eligible and ineligible alike).
+    pub episodes: usize,
+    /// Cached-prefix tokens as reported by the provider: `null` — the
+    /// 0006 parser did not persist the provider's cache accounting
+    /// (`usage.prompt_tokens_details.cached_tokens`), so the prefix-cache
+    /// hit rate during the run is not quantifiable from this artifact.
+    pub cached_prefix_tokens: Option<u64>,
+    /// Effective uncached prefill work: `null` — not computable without
+    /// the cached-prefix accounting above.
+    pub effective_uncached_prefill_tokens: Option<u64>,
+    /// Explicit statement of what the artifact does and does not contain.
+    pub note: String,
 }
 
 pub fn aggregate_verification(records: &[EpisodeRecord]) -> VerificationSummary {
@@ -548,6 +641,8 @@ pub struct Summary {
     pub read_only_control_write_occurrences: Vec<ReadOnlyWriteOccurrence>,
     pub kernel_failures: KernelFailures,
     pub timing: TimingSummary,
+    #[serde(default)]
+    pub usage: UsageSummary,
     pub conclusion: Conclusion,
 }
 
@@ -757,6 +852,18 @@ pub fn compute_summary(records: &[EpisodeRecord]) -> Summary {
         episodes: records.len(),
     };
 
+    // Token usage accounting over all episodes (audit §24).
+    let usage = UsageSummary {
+        prompt_tokens: records.iter().map(|r| r.usage.prompt_tokens).sum(),
+        completion_tokens: records.iter().map(|r| r.usage.completion_tokens).sum(),
+        total_tokens: records.iter().map(|r| r.usage.total_tokens).sum(),
+        model_requests: records.iter().map(|r| r.model_turn_count as u64).sum(),
+        episodes: records.len(),
+        cached_prefix_tokens: None,
+        effective_uncached_prefill_tokens: None,
+        note: USAGE_NOTE.to_string(),
+    };
+
     // Pre-registered conclusion rule (spec §50), applied mechanically.
     let conclusion = decide_conclusion(&pairs, &baseline_summary, &candidate_summary);
 
@@ -799,8 +906,220 @@ pub fn compute_summary(records: &[EpisodeRecord]) -> Summary {
         read_only_control_write_occurrences: ro_occurrences,
         kernel_failures,
         timing,
+        usage,
         conclusion,
     }
+}
+
+/// Explicit statement of what the 0006 usage accounting does and does not
+/// contain (audit §24): categories the artifact lacks are `null`, never
+/// estimated.
+const USAGE_NOTE: &str = concat!(
+    "The raw artifact persists only prompt/completion/total tokens per episode. The ",
+    "provider's prefix-cache accounting and its reasoning/visible-text split were not ",
+    "persisted by the 0006 parser, so cached_prefix_tokens and effective_uncached_",
+    "prefill_tokens are null (not zero): the run-time prefix-cache hit rate is UNKNOWN ",
+    "from this artifact. completion_tokens includes reasoning and cannot be decomposed. ",
+    "prompt_tokens is nominal (full prompt per request), not uncached prefill work. The ",
+    "one-line candidate mutation is a system-prompt change; it does not alter the ",
+    "recorded token accounting mechanism.",
+);
+
+/// The registered task suite of Experiment 0006 (audit §30).
+const CANONICAL_TASKS: [(&str, &str); 6] = [
+    ("T1", "read_x"),
+    ("T2", "read_both"),
+    ("T3", "write_x"),
+    ("T4", "conditional_write"),
+    ("T5", "unrelated_read_after_write"),
+    ("T6", "two_writes"),
+];
+
+/// The registered per-task condition order for repetitions 1..3
+/// (audit §25, §30): file order must be baseline, candidate, candidate,
+/// baseline, baseline, candidate.
+const COUNTERBALANCE: [&str; 6] = [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate",
+];
+
+/// Strict factorial completeness of the registered design (audit §30):
+/// every (task, condition, repetition) cell occurs exactly once, the
+/// registered task suite is present in full with its registered names,
+/// and no cell is duplicated. The repetition count R is taken from the
+/// artifacts; cells are checked against all R repetitions.
+pub fn check_factorial_completeness(records: &[EpisodeRecord]) -> (bool, String) {
+    let max_rep = records.iter().map(|r| r.repetition).max().unwrap_or(0);
+    if max_rep == 0 {
+        return (false, "no records".into());
+    }
+
+    // The registered task suite, in full.
+    let present: BTreeMap<&str, &str> = records
+        .iter()
+        .map(|r| (r.task_id.as_str(), r.task_name.as_str()))
+        .collect();
+    for (id, name) in CANONICAL_TASKS {
+        match present.get(id) {
+            None => return (false, format!("task {id} missing")),
+            Some(n) if *n != name => {
+                return (
+                    false,
+                    format!("task {id} has unregistered name {n:?} (expected {name:?})"),
+                );
+            }
+            _ => {}
+        }
+    }
+    for id in present.keys() {
+        if !CANONICAL_TASKS.iter().any(|(c, _)| *c == *id) {
+            return (false, format!("unregistered task id {id} present"));
+        }
+    }
+
+    // Every cell exactly once.
+    let mut cells: BTreeMap<String, usize> = BTreeMap::new();
+    for r in records {
+        *cells
+            .entry(format!("{}|{}|{}", r.task_id, r.condition, r.repetition))
+            .or_default() += 1;
+    }
+    let duplicated = cells
+        .iter()
+        .filter(|(_, n)| **n > 1)
+        .map(|(k, _)| k.clone())
+        .collect::<Vec<_>>();
+    if !duplicated.is_empty() {
+        return (
+            false,
+            format!("duplicated cells: {}", duplicated.join(", ")),
+        );
+    }
+    let mut missing = Vec::new();
+    for (id, _) in CANONICAL_TASKS {
+        for condition in ["baseline", "candidate"] {
+            for rep in 1..=max_rep {
+                let cell = format!("{id}|{condition}|{rep}");
+                if !cells.contains_key(&cell) {
+                    missing.push(cell);
+                }
+            }
+        }
+    }
+    if !missing.is_empty() {
+        return (
+            false,
+            format!("{} missing cells: {}", missing.len(), missing.join(", ")),
+        );
+    }
+    (
+        true,
+        format!(
+            "{} records = 6 tasks x 2 conditions x {} reps; all cells exactly once",
+            records.len(),
+            max_rep
+        ),
+    )
+}
+
+/// Registered counterbalance and episode ordering (audit §25, §30).
+///
+/// Enforced only for the registered 36-run design: per task, the six
+/// runs appear in file order baseline, candidate, candidate, baseline,
+/// baseline, candidate; task blocks appear in canonical suite order;
+/// all run ids share one timestamp prefix; and episode indices are
+/// 1..N strictly increasing in file order.
+pub fn check_registered_run_order(records: &[EpisodeRecord]) -> (bool, String) {
+    if records.len() != (CANONICAL_TASKS.len() * 2 * 3) {
+        return (
+            true,
+            format!(
+                "{} records: not the registered 36-run design; counterbalance and ordering not applicable",
+                records.len()
+            ),
+        );
+    }
+    for (block, (id, _)) in CANONICAL_TASKS.iter().enumerate() {
+        let block_recs = &records[block * 6..(block + 1) * 6];
+        // Task block in canonical order, with the registered repetitions
+        // in file order 1,1,2,2,3,3.
+        let reps_ok = block_recs
+            .iter()
+            .zip([1u32, 1, 2, 2, 3, 3].iter())
+            .all(|(r, rep)| r.task_id == *id && r.repetition == *rep);
+        if !reps_ok {
+            return (
+                false,
+                format!("task block {id}: wrong task/repetition sequence"),
+            );
+        }
+        let cond_ok = block_recs
+            .iter()
+            .zip(COUNTERBALANCE.iter())
+            .all(|(r, c)| r.condition == *c);
+        if !cond_ok {
+            return (
+                false,
+                format!("task block {id}: counterbalance order violated"),
+            );
+        }
+    }
+    // Run id structure: shared timestamp prefix, strict episode sequence.
+    let mut prefix: Option<&str> = None;
+    for (i, r) in records.iter().enumerate() {
+        let parts: Vec<&str> = r.run_id.split('-').collect();
+        // exp0006-<prefix>-<ti>-<rep>-<episode>
+        if parts.len() != 5 || parts[0] != "exp0006" {
+            return (
+                false,
+                format!("run id {} does not match the registered pattern", r.run_id),
+            );
+        }
+        match prefix {
+            None => prefix = Some(parts[1]),
+            Some(p) if p != parts[1] => {
+                return (
+                    false,
+                    "run ids mix timestamp prefixes (not a single run)".into(),
+                );
+            }
+            _ => {}
+        }
+        if parts[4] != (i + 1).to_string() {
+            return (
+                false,
+                format!(
+                    "episode index in {} is not {} (file order)",
+                    r.run_id,
+                    i + 1
+                ),
+            );
+        }
+        let ti: usize = parts[2].parse().unwrap_or(usize::MAX);
+        if ti != i / 6 {
+            return (
+                false,
+                format!("{} encodes task index {ti}, expected {}", r.run_id, i / 6),
+            );
+        }
+        let rep: u32 = parts[3].parse().unwrap_or(u32::MAX);
+        if rep != [1, 1, 2, 2, 3, 3][i % 6] {
+            return (
+                false,
+                format!("{} encodes repetition {rep} out of order", r.run_id),
+            );
+        }
+    }
+    let detail = format!(
+        "36 runs, single timestamp prefix {}, episodes 1..36 in file order, per-task counterbalance {}",
+        prefix.unwrap_or(""),
+        COUNTERBALANCE.join("/")
+    );
+    (true, detail)
 }
 
 /// The pre-registered conclusion rule (spec §50).
@@ -965,6 +1284,14 @@ pub fn verify_artifacts(raw_records: &[Value], raw_summary: &Value) -> VerifyRes
         return result;
     }
 
+    // Strict factorial completeness (audit §30).
+    let (fc_ok, fc_detail) = check_factorial_completeness(&records);
+    result.add("factorial_completeness", fc_ok, fc_detail);
+
+    // Registered counterbalance and episode ordering (audit §25, §30).
+    let (ro_ok, ro_detail) = check_registered_run_order(&records);
+    result.add("registered_run_order", ro_ok, ro_detail);
+
     // Hash + model consistency across all records.
     let first = records.first().unwrap();
     let mut consistent = |f: fn(&EpisodeRecord) -> &str, name: &str| {
@@ -1117,11 +1444,17 @@ mod tests {
         calls: Vec<ToolCallRecord>,
     ) -> EpisodeRecord {
         let count = calls.len();
+        // Registered task name when the id is a registered task.
+        let task_name = CANONICAL_TASKS
+            .iter()
+            .find(|(id, _)| *id == task)
+            .map(|(_, name)| *name)
+            .unwrap_or("test");
         EpisodeRecord {
             experiment_id: "0006".into(),
             run_id: run_id.into(),
             task_id: task.into(),
-            task_name: "test".into(),
+            task_name: task_name.into(),
             condition: condition.into(),
             repetition: rep,
             model: "m".into(),
@@ -1229,14 +1562,17 @@ mod tests {
         // extra occurrence of an existing identity is "added", not novel
         assert!(trajectory_tags(&b, &c).contains(&TrajectoryTag::AddedCall));
 
-        // truly novel: same name, different argument
+        // truly novel: a tool name the baseline never used. The new tool
+        // is absent from one run, so `argument_change` (defined over
+        // tools present in *both* runs) must NOT fire: this is a
+        // tool-appearance difference, owned by added_call/novel_call.
         let c2 = vec![
             call(0, 1, "state_read", "x", None),
             call(1, 2, "state_write", "y", Some("C")),
         ];
         let tags = trajectory_tags(&b, &c2);
         assert!(tags.contains(&TrajectoryTag::NovelCall));
-        assert!(tags.contains(&TrajectoryTag::ArgumentChange));
+        assert!(!tags.contains(&TrajectoryTag::ArgumentChange));
     }
 
     #[test]
@@ -1278,8 +1614,8 @@ mod tests {
         ];
         let c = vec![
             call(0, 1, "state_write", "x", Some("B")), // argument change
-            call(1, 2, "state_write", "x", Some("B")), // added + state-effect
-            call(2, 3, "state_read", "y", None), // omitted read of x, novel-ish? no: read y absent in b => novel
+            call(1, 2, "state_write", "x", Some("B")), // added (write multiplicity)
+            call(2, 3, "state_read", "y", None),       // read x omitted; read y novel
         ];
         let tags = trajectory_tags(&b, &c);
         for t in [
@@ -1287,11 +1623,136 @@ mod tests {
             TrajectoryTag::AddedCall,
             TrajectoryTag::OmittedCall,
             TrajectoryTag::NovelCall,
-            TrajectoryTag::StateEffectOrderChange,
         ] {
             assert!(tags.contains(&t), "expected tag {t:?} in {tags:?}");
         }
+        // Key x in the candidate has only writes (no read), so the
+        // write/read relation on x is undefined on one side and the
+        // state-effect tag must not fire; key y is read-only.
+        assert!(!tags.contains(&TrajectoryTag::StateEffectOrderChange));
         assert!(!tags.contains(&TrajectoryTag::Exact));
+    }
+
+    // --- argument_change (fixed semantics, audit §31) -------------------------
+
+    #[test]
+    fn argument_change_fires_on_same_tool_different_values() {
+        let b = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("A")),
+        ];
+        let c = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("B")),
+        ];
+        let tags = trajectory_tags(&b, &c);
+        assert!(tags.contains(&TrajectoryTag::ArgumentChange));
+        // Identity-level count tags co-fire: the new value is a new
+        // canonical identity (added) and the old one is gone (omitted).
+        // This is pre-existing identity semantics, not the argument tag.
+        assert!(tags.contains(&TrajectoryTag::AddedCall));
+        assert!(tags.contains(&TrajectoryTag::OmittedCall));
+        assert!(!tags.contains(&TrajectoryTag::Reordered));
+        // The write/read relation on x is R-then-W in both runs.
+        assert!(!tags.contains(&TrajectoryTag::StateEffectOrderChange));
+    }
+
+    #[test]
+    fn argument_change_ignores_tool_appearance() {
+        // The 0006 T3/T5 pattern: the candidate adds a read of a key the
+        // baseline never read. `state_write` is present in both with an
+        // identical unique argument; `state_read` is absent from the
+        // baseline, so no tool present in *both* runs differs in its
+        // argument set.
+        let b = vec![call(0, 1, "state_write", "x", Some("A"))];
+        let c = vec![
+            call(0, 1, "state_write", "x", Some("A")),
+            call(1, 2, "state_read", "x", None),
+        ];
+        let tags = trajectory_tags(&b, &c);
+        assert!(!tags.contains(&TrajectoryTag::ArgumentChange));
+        assert!(tags.contains(&TrajectoryTag::AddedCall));
+        assert!(tags.contains(&TrajectoryTag::NovelCall));
+    }
+
+    #[test]
+    fn argument_change_ignores_multiplicity() {
+        let b = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_read", "x", None),
+        ];
+        let c = vec![call(0, 1, "state_read", "x", None)];
+        let tags = trajectory_tags(&b, &c);
+        // Identical argument values, one occurrence removed: a count
+        // difference (omitted_call), not an argument difference.
+        assert!(!tags.contains(&TrajectoryTag::ArgumentChange));
+        assert!(tags.contains(&TrajectoryTag::OmittedCall));
+        assert!(tags.contains(&TrajectoryTag::RepeatedCountChange));
+    }
+
+    // --- state_effect_order_change (fixed semantics, audit §32) ----------------
+
+    #[test]
+    fn state_effect_fires_on_relation_change() {
+        // The 0006 T4 pattern: baseline R-then-W; candidate R-then-W-then-R
+        // gains a write-before-read, so the relation signature changes
+        // (false,true) -> (true,true).
+        let b = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("A")),
+        ];
+        let c = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("A")),
+            call(2, 3, "state_read", "x", None),
+        ];
+        let tags = trajectory_tags(&b, &c);
+        assert!(tags.contains(&TrajectoryTag::StateEffectOrderChange));
+        // Same unique arguments on every tool present in both runs.
+        assert!(!tags.contains(&TrajectoryTag::ArgumentChange));
+    }
+
+    #[test]
+    fn state_effect_ignores_read_multiplicity_with_same_relation() {
+        let b = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("A")),
+            call(2, 3, "state_read", "x", None),
+        ];
+        let c = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_write", "x", Some("A")),
+            call(2, 3, "state_read", "x", None),
+            call(3, 4, "state_read", "x", None),
+        ];
+        // (true, true) on both sides: only multiplicity differs.
+        assert!(!trajectory_tags(&b, &c).contains(&TrajectoryTag::StateEffectOrderChange));
+    }
+
+    #[test]
+    fn state_effect_requires_both_operations_on_both_sides() {
+        // The 0006 T3 pattern: baseline writes x once (no read of x);
+        // candidate adds a read of x. The key has no write AND read on
+        // the baseline side, so the relation is undefined there and the
+        // tag must not fire even though the raw W/R pattern changed.
+        let b = vec![call(0, 1, "state_write", "x", Some("A"))];
+        let c = vec![
+            call(0, 1, "state_write", "x", Some("A")),
+            call(1, 2, "state_read", "x", None),
+        ];
+        assert!(!trajectory_tags(&b, &c).contains(&TrajectoryTag::StateEffectOrderChange));
+    }
+
+    #[test]
+    fn state_effect_ignores_read_only_keys() {
+        // The 0006 T1/T2 shape: identical or extra reads, no writes at
+        // all — no key has a write/read relation on either side.
+        let b = vec![call(0, 1, "state_read", "x", None)];
+        let c = vec![
+            call(0, 1, "state_read", "x", None),
+            call(1, 2, "state_read", "y", None),
+        ];
+        assert!(!trajectory_tags(&b, &c).contains(&TrajectoryTag::StateEffectOrderChange));
     }
 
     // --- verification metric ---------------------------------------------------
@@ -1612,6 +2073,151 @@ mod tests {
         assert!(v.ok, "checks: {:?}", v.checks);
     }
 
+    // --- registered factorial design (audit §30) --------------------------------
+
+    /// The canonical 36-record design: 6 tasks x 2 conditions x 3 reps,
+    /// registered counterbalance, registered run-id encoding. Call
+    /// patterns are deliberately varied and valid.
+    fn factorial_fixture() -> Vec<EpisodeRecord> {
+        let mut out = Vec::new();
+        for (ti, &(id, _)) in CANONICAL_TASKS.iter().enumerate() {
+            for (slot, &condition) in COUNTERBALANCE.iter().enumerate() {
+                let rep = [1u32, 1, 2, 2, 3, 3][slot];
+                let ep = ti * 6 + slot + 1;
+                let run_id = format!("exp0006-999-{ti}-{rep}-{ep}");
+                let calls = match (id, condition) {
+                    ("T1", _) => vec![call(0, 1, "state_read", "x", None)],
+                    ("T2", _) => vec![call(0, 1, "state_read", "x", None)],
+                    ("T3", "baseline") => vec![call(0, 1, "state_write", "x", Some("A"))],
+                    ("T3", "candidate") => vec![
+                        call(0, 1, "state_write", "x", Some("A")),
+                        call(1, 2, "state_read", "x", None),
+                    ],
+                    ("T4", "baseline") => vec![
+                        call(0, 1, "state_read", "x", None),
+                        call(1, 2, "state_write", "x", Some("A")),
+                    ],
+                    ("T4", "candidate") => vec![
+                        call(0, 1, "state_read", "x", None),
+                        call(1, 2, "state_write", "x", Some("A")),
+                        call(2, 3, "state_read", "x", None),
+                    ],
+                    ("T5", "baseline") => vec![
+                        call(0, 1, "state_write", "x", Some("A")),
+                        call(1, 2, "state_read", "y", None),
+                    ],
+                    ("T5", "candidate") => vec![
+                        call(0, 1, "state_write", "x", Some("A")),
+                        call(1, 2, "state_read", "x", None),
+                        call(2, 3, "state_read", "y", None),
+                    ],
+                    _ => vec![
+                        call(0, 1, "state_write", "x", Some("A")),
+                        call(1, 2, "state_write", "y", Some("B")),
+                    ],
+                };
+                out.push(record(&run_id, id, condition, rep, true, calls));
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn factorial_fixture_passes_all_verifier_checks() {
+        let recs = factorial_fixture();
+        assert_eq!(recs.len(), 36);
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        assert!(v.ok, "checks: {:?}", v.checks);
+        let names: Vec<&str> = v.checks.iter().map(|(n, _, _)| n.as_str()).collect();
+        assert!(names.contains(&"factorial_completeness"));
+        assert!(names.contains(&"registered_run_order"));
+    }
+
+    #[test]
+    fn verifier_flags_missing_factorial_cell() {
+        let mut recs = factorial_fixture();
+        recs.pop(); // remove one (task, condition, rep) cell
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        let check = v
+            .checks
+            .iter()
+            .find(|(n, _, _)| n == "factorial_completeness")
+            .unwrap();
+        assert!(!check.1, "incomplete factorial must fail: {}", check.2);
+        assert!(!v.ok);
+    }
+
+    #[test]
+    fn verifier_flags_duplicated_factorial_cell() {
+        let mut recs = factorial_fixture();
+        let mut clone = recs[0].clone();
+        clone.run_id = "exp0006-999-0-1-37".into(); // duplicate of a cell
+        recs.push(clone);
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        let check = v
+            .checks
+            .iter()
+            .find(|(n, _, _)| n == "factorial_completeness")
+            .unwrap();
+        assert!(!check.1, "duplicated cell must fail: {}", check.2);
+    }
+
+    #[test]
+    fn verifier_flags_counterbalance_violation() {
+        let mut recs = factorial_fixture();
+        // Swap the first two runs of task T1 (baseline <-> candidate).
+        let tmp = recs[0].clone();
+        recs[0] = recs[1].clone();
+        recs[1] = tmp;
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        let check = v
+            .checks
+            .iter()
+            .find(|(n, _, _)| n == "registered_run_order")
+            .unwrap();
+        assert!(!check.1, "counterbalance violation must fail: {}", check.2);
+    }
+
+    #[test]
+    fn verifier_flags_mixed_timestamp_prefixes() {
+        let mut recs = factorial_fixture();
+        recs[10].run_id = "exp0006-888-1-1-11".into(); // different run
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        let check = v
+            .checks
+            .iter()
+            .find(|(n, _, _)| n == "registered_run_order")
+            .unwrap();
+        assert!(!check.1, "mixed prefixes must fail: {}", check.2);
+    }
+
+    #[test]
+    fn non_registered_design_skips_run_order_but_keeps_completeness() {
+        // A 12-record rep-1 design (the registered suite, one rep each):
+        // factorial completeness applies, the 36-run order checks do not.
+        let recs: Vec<EpisodeRecord> = factorial_fixture()
+            .iter()
+            .filter(|r| r.repetition == 1)
+            .cloned()
+            .collect();
+        assert_eq!(recs.len(), 12);
+        let s = compute_summary(&recs);
+        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
+        assert!(v.ok, "checks: {:?}", v.checks);
+        let check = v
+            .checks
+            .iter()
+            .find(|(n, _, _)| n == "registered_run_order")
+            .unwrap();
+        assert!(check.1);
+        assert!(check.2.contains("not applicable"));
+    }
+
     // --- secret redaction serialization ----------------------------------------
 
     fn raw(records: &[EpisodeRecord]) -> Vec<Value> {
@@ -1624,22 +2230,20 @@ mod tests {
 
     #[test]
     fn verifier_flags_reasoning_and_secret_keys() {
-        let r = record(
-            "z1",
-            "T1",
-            "baseline",
-            1,
-            true,
-            vec![call(0, 1, "state_read", "x", None)],
-        );
-        let s = compute_summary(std::slice::from_ref(&r));
+        let recs: Vec<EpisodeRecord> = factorial_fixture()
+            .iter()
+            .filter(|r| r.repetition == 1)
+            .cloned()
+            .collect();
+        let s = compute_summary(&recs);
         let sv = serde_json::to_value(&s).unwrap();
         // clean artifacts pass
-        assert!(verify_artifacts(&raw(std::slice::from_ref(&r)), &sv).ok);
+        assert!(verify_artifacts(&raw(&recs), &sv).ok);
+        let r = &recs[0];
 
         // a raw artifact carrying a reasoning-like key must be flagged
         // (struct round-trips would silently drop such keys).
-        let mut v = serde_json::to_value(&r).unwrap();
+        let mut v = serde_json::to_value(r).unwrap();
         v["reasoning_content"] = json!("SECRET");
         let result = verify_artifacts(&[v], &sv);
         let check = result

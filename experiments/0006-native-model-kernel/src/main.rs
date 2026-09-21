@@ -3,6 +3,10 @@
 //! Usage:
 //!   run --repetitions 3 --trajectories PATH --summary PATH
 //!   verify-artifacts --trajectories PATH --summary PATH
+//!   recompute-summary --trajectories PATH --summary PATH
+//!
+//! `recompute-summary` regenerates the derived summary from the immutable
+//! raw trajectories (no model calls); it writes only the summary file.
 //!
 //! `run` requires MUTAGEN_EXP_BASE_URL and MUTAGEN_EXP_MODEL
 //! (MUTAGEN_EXP_API_KEY optional). If they are missing, the experiment
@@ -84,7 +88,7 @@ fn parse_flags(args: &[String]) -> Result<Flags, String> {
 
 fn print_usage() {
     eprintln!(
-        "usage:\n  mutagen-exp-0006 run --repetitions N --trajectories PATH --summary PATH\n  mutagen-exp-0006 verify-artifacts --trajectories PATH --summary PATH\n\nenvironment (run):\n  MUTAGEN_EXP_BASE_URL  required (OpenAI-compatible endpoint, e.g. http://127.0.0.1:8000/v1)\n  MUTAGEN_EXP_MODEL     required (Qwen model id)\n  MUTAGEN_EXP_API_KEY   optional"
+        "usage:\n  mutagen-exp-0006 run --repetitions N --trajectories PATH --summary PATH\n  mutagen-exp-0006 verify-artifacts --trajectories PATH --summary PATH\n  mutagen-exp-0006 recompute-summary --trajectories PATH --summary PATH\n\nenvironment (run):\n  MUTAGEN_EXP_BASE_URL  required (OpenAI-compatible endpoint, e.g. http://127.0.0.1:8000/v1)\n  MUTAGEN_EXP_MODEL     required (Qwen model id)\n  MUTAGEN_EXP_API_KEY   optional"
     );
 }
 
@@ -112,6 +116,7 @@ fn main() -> ExitCode {
             })
         }
         "verify-artifacts" => verify_artifacts_cmd(&args[1..]),
+        "recompute-summary" => recompute_summary_cmd(&args[1..]),
         other => {
             eprintln!("unknown command {other:?}");
             print_usage();
@@ -126,6 +131,67 @@ fn main() -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+/// Regenerate the derived summary from the immutable raw trajectories.
+/// No model calls; the trajectories file is read, never written.
+fn recompute_summary_cmd(args: &[String]) -> Result<(), String> {
+    let mut trajectories: Option<String> = None;
+    let mut summary: Option<String> = None;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--trajectories" => {
+                i += 1;
+                trajectories = Some(args[i].clone());
+            }
+            "--summary" => {
+                i += 1;
+                summary = Some(args[i].clone());
+            }
+            other => return Err(format!("unknown argument {other:?}")),
+        }
+        i += 1;
+    }
+    let trajectories = trajectories.ok_or("missing --trajectories")?;
+    let summary = summary.ok_or("missing --summary")?;
+
+    let raw = std::fs::read_to_string(&trajectories)
+        .map_err(|e| format!("cannot read {trajectories}: {e}"))?;
+    let mut values = Vec::new();
+    for (n, line) in raw.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let v: serde_json::Value =
+            serde_json::from_str(line).map_err(|e| format!("line {}: {e}", n + 1))?;
+        values.push(v);
+    }
+    if values.is_empty() {
+        return Err("trajectories file contains no records".into());
+    }
+    let records: Vec<trace::EpisodeRecord> = values
+        .iter()
+        .map(|v| serde_json::from_value(v.clone()))
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("record does not match the 0006 schema: {e}"))?;
+
+    let s = trace::compute_summary(&records);
+    let json = serde_json::to_string_pretty(&s).map_err(|e| e.to_string())?;
+    std::fs::write(&summary, json + "\n").map_err(|e| format!("cannot write {summary}: {e}"))?;
+
+    println!(
+        "recomputed summary for {} records: conclusion={} eligible={}/{} pairs={}/{} prompt_tokens={} completion_tokens={}",
+        s.total_episodes,
+        s.conclusion.as_str(),
+        s.eligible_episodes,
+        s.total_episodes,
+        s.eligible_pairs,
+        s.eligible_pairs + s.ineligible_pairs,
+        s.usage.prompt_tokens,
+        s.usage.completion_tokens
+    );
+    Ok(())
 }
 
 fn verify_artifacts_cmd(args: &[String]) -> Result<(), String> {
