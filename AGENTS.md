@@ -57,6 +57,9 @@ is intentionally undecided (see
    types such as `EvolutionEngine`, `Mutator`, `HotReloadable`,
    `GeneticOptimizer`, or similar, unless a completed experiment
    demonstrates the need and a decision is recorded in `docs/decisions/`.
+   In particular: do not encode revision, version, generation,
+   parent/child, or lineage semantics into public types until an experiment
+   demonstrates the required model.
 
 3. **Core stays minimal.** `mutagen-core` contains foundational domain
    types only. Model providers, HTTP, databases, plugin loading, hot

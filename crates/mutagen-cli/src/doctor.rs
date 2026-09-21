@@ -5,7 +5,7 @@
 //! debugging.
 
 use mutagen_runtime::VERSION as RUNTIME_VERSION;
-use mutagen_runtime::core::{ComponentId, EpisodeId, VERSION as CORE_VERSION};
+use mutagen_runtime::core::{EpisodeId, VERSION as CORE_VERSION};
 
 /// Minimum rustc version required by the workspace (`rust-version`).
 const MIN_RUSTC: (u16, u16) = (1, 85);
@@ -41,7 +41,6 @@ impl Check {
 pub fn run() -> std::process::ExitCode {
     let checks = vec![
         check_toolchain(),
-        check_component_identity(),
         check_episode_identity(),
         check_workspace_wiring(),
     ];
@@ -96,17 +95,6 @@ fn parse_semver_prefix(s: &str) -> Option<(u16, u16)> {
     Some((major, minor))
 }
 
-fn check_component_identity() -> Check {
-    const NAME: &str = "core: component id";
-    let id = ComponentId::new("router", 7);
-    let rendered = id.to_string();
-    let round_tripped = rendered.parse::<ComponentId>();
-    match round_tripped {
-        Ok(parsed) if parsed == id => Check::pass(NAME, format!("round-trip of {rendered}")),
-        _ => Check::fail(NAME, format!("round-trip failed for {rendered}")),
-    }
-}
-
 fn check_episode_identity() -> Check {
     const NAME: &str = "core: episode id";
     let id = EpisodeId::new("2026-01-15-000000-000001");
@@ -119,10 +107,10 @@ fn check_episode_identity() -> Check {
 }
 
 fn check_workspace_wiring() -> Check {
-    const NAME: &str = "workspace: dependency direction";
+    const NAME: &str = "workspace: wiring";
     // This function only compiles if mutagen-cli → mutagen-runtime →
-    // mutagen-core all link. The versions in the detail string document
-    // which layer is which.
+    // mutagen-core all link. That is all it claims: a link check, not an
+    // inspection of the dependency graph.
     Check::pass(
         NAME,
         format!(

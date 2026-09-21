@@ -25,8 +25,10 @@ human or agent — aligned before any architecture exists.
    prerequisite for all validation and a design constraint on everything.
 6. **Observability.** Every component exposes enough signal (timings,
    decisions, versions) to diagnose it after the fact.
-7. **Versionability.** Evolvable artifacts carry stable, versioned
-   identities; lineage is trackable.
+7. **Identifiability.** Evolution experiments must make artifacts and their
+   relationships identifiable enough for comparison, replay, promotion, and
+   rollback. The concrete identity, revision, and lineage representation is
+   intentionally undecided.
 8. **Reversibility.** Every promotion of a change has a corresponding
    rollback path.
 9. **Minimal dependencies.** Every dependency has a concrete current use.

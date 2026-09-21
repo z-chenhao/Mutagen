@@ -73,7 +73,8 @@ These are the agenda. **None of them is answered in this repository yet.**
 7. How do we evaluate generalization beyond the scenarios that motivated a
    change?
 8. How do we detect regressions?
-9. How should versions and lineage be represented?
+9. How should versions and lineage be represented? (The current codebase
+   intentionally defines no representation.)
 10. How should rollback work?
 11. What does safe hot deployment mean in Rust? (Locks, `Arc` swaps,
     capability isolation, in-flight work?)
