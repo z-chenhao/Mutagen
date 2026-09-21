@@ -33,7 +33,7 @@ use std::process::ExitCode;
 
 use serde_json::Value;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Flags {
     trajectories: Option<PathBuf>,
     summary: Option<PathBuf>,
@@ -76,6 +76,7 @@ fn parse_flags(args: &[String], required: &[&str]) -> Result<Flags, String> {
             return Err(format!("unknown argument {:?}", args[i]));
         }
         take(&mut flags, &args[i], args, &mut i)?;
+        i += 1; // step over the consumed value
     }
     for r in required {
         let set = match *r {
@@ -300,5 +301,45 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parser_accepts_provenance_flags() {
+        let flags = parse_flags(
+            &[
+                "--trajectories".into(),
+                "t.jsonl".into(),
+                "--summary".into(),
+                "s.json".into(),
+                "--selection".into(),
+                "m.json".into(),
+                "--code-commit".into(),
+                "a".repeat(40).into(),
+                "--endpoint".into(),
+                "http://redacted/v1".into(),
+            ],
+            &["--trajectories", "--summary", "--selection", "--code-commit"],
+        )
+        .unwrap();
+        assert_eq!(flags.trajectories.as_deref(), Some(std::path::Path::new("t.jsonl")));
+        assert_eq!(flags.summary.as_deref(), Some(std::path::Path::new("s.json")));
+        assert_eq!(flags.selection.as_deref(), Some(std::path::Path::new("m.json")));
+        assert_eq!(flags.code_commit.as_deref(), Some("a".repeat(40).as_str()));
+        assert_eq!(flags.endpoint.as_deref(), Some("http://redacted/v1"));
+    }
+
+    #[test]
+    fn parser_reports_missing_required_flag() {
+        let err = parse_flags(
+            &["--trajectories".into(), "t.jsonl".into()],
+            &["--trajectories", "--summary", "--selection", "--code-commit"],
+        )
+        .unwrap_err();
+        assert!(err.contains("--summary"), "{err}");
     }
 }
