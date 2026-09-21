@@ -1,0 +1,33 @@
+# Standalone experiment workspace.
+#
+# This crate deliberately does NOT join the production workspace (the
+# empty `[workspace]` table below detaches it from the repository root
+# workspace). Nothing here is a production API and nothing here is
+# promoted to `mutagen-core` / `mutagen-runtime` / `mutagen-cli`.
+#
+# Duplication is deliberate: Experiment 0007 copies only the minimal
+# kernel/protocol ideas validated in Experiment 0006 instead of
+# depending on the 0006 crate. Two experiments are not yet enough
+# evidence to promote a shared production abstraction.
+[package]
+name = "mutagen-exp-0007"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Serialization for the OpenAI-compatible chat protocol and artifacts.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Synchronous HTTP client for the single model endpoint.
+# Synchronous on purpose: no async runtime is introduced.
+ureq = { version = "2", features = ["json"] }
+# SHA-256 for prompt / task-suite provenance hashes.
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
