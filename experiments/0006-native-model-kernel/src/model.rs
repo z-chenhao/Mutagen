@@ -73,10 +73,12 @@ impl ModelClient {
 
         let agent = ureq::AgentBuilder::new().timeout(REQUEST_TIMEOUT).build();
 
-        let mut req = agent.post(&format!(
-            "{}/chat/completions",
-            self.base_url.trim_end_matches('/')
-        ));
+        let mut req = agent
+            .post(&format!(
+                "{}/chat/completions",
+                self.base_url.trim_end_matches('/')
+            ))
+            .set("Content-Type", "application/json");
         if let Some(key) = &self.api_key {
             req = req.set("Authorization", &format!("Bearer {key}"));
         }
