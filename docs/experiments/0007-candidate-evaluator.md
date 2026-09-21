@@ -152,9 +152,18 @@ reading state. The kernel maintains an experiment-only
 `applied`, `fault_reason`) that is persisted in artifacts but **never
 inserted into the LLM transcript**. The artifact verifier re-checks the
 whole schedule for every episode: in Reliable mode no write is dropped;
-in DropFirstWrite exactly the first write to the registered key is
-dropped, at most one drop per episode, all other writes applied, and the
+in DropFirstWrite, **if** the model writes the registered key, the first
+such write is dropped and later writes to that key apply, with at most
+one drop per episode; writes to other keys always apply; and the
 model-visible write result exposes nothing about the drop.
+
+**Registered fault mode ≠ triggered fault.** An episode may register
+`DropFirstWrite(key)` while the model never calls
+`state_write(key, …)`; then the registered fault simply never triggers
+(zero dropped writes) and the episode still conforms to the schedule.
+The derived summary therefore reports *registered* and *triggered* as
+separate machine-derived counts, and no quantity in this experiment may
+collapse the two.
 
 ## Task Suite
 
@@ -315,7 +324,29 @@ Infrastructure failure rate: **0.0%** (threshold: > 10% → inconclusive). All 1
 
 ## Fault Injection Audit
 
-Reliable episodes: **96 / 96** passed. DropFirstWrite episodes: **48 / 48** passed (exactly one silent drop per episode, only to the registered key; every write returned the model-visible success response; zero leaks). Fault audit verdict: **passed**.
+Registered fault modes (machine-derived from the 144 records; 4 tasks
+× 18 episodes per mode): **72 Reliable, 72 DropFirstWrite**. All 144
+episodes passed the per-record schedule audit (every write returned the
+model-visible success response; zero leaks). Verdict: **passed**.
+
+Machine-derived trigger accounting (from the immutable audit logs —
+registered mode and triggered fault are distinct quantities):
+
+| Quantity | Episodes | Notes |
+|---|---|---|
+| Registered Reliable | 72 | C1, C3, H1, H3 × 3 conditions × 6 reps |
+| Registered DropFirstWrite | 72 | C2, C4, H2, H4 × 3 conditions × 6 reps |
+| DropFirstWrite episodes with a target-key write | 58 | fault could trigger |
+| DropFirstWrite episodes without a target-key write | 14 | fault never triggered; schedule still conforms |
+| Triggered silent-drop episodes | 58 | one-shot drop fired on the first target-key write |
+| Total silently-dropped write attempts | 58 | one per triggered episode (one-shot) |
+
+The 14 untriggered episodes are all `candidate_regression` episodes (the
+regression prompt forbade `state_write`; the model complied 24 − 10 = 14
+times across the drop-mode tasks, and even where it wrote another key,
+the registered fault key was never touched). Every triggered drop was to
+the registered key only, returned the model-visible success response, and
+occurred exactly once.
 
 ## Calibration Results (C1–C4, evidence only — not determinative)
 
@@ -327,9 +358,15 @@ Reliable episodes: **96 / 96** passed. DropFirstWrite episodes: **48 / 48** pass
 
 Per task (6 reps each). Calibration: baseline `C1 6 · C2 3 · C3 6 · C4 0`;
 repair `6 · 6 · 6 · 6`; regression `C1 1 · C2 0 · C3 3 · C4 0`.
-The baseline's spontaneous read-back verification recovered 3 of 6 one-shot
-drops on the *direct* write task (C2) but none of 6 on the *conditional*
-drop task (C4); the repair mutation converted both to 6/6.
+
+Fault-specific split (keep the two quantities separate):
+
+- baseline on calibration **Reliable** tasks (C1, C3): **12/12**
+- baseline on calibration **DropFirstWrite** tasks (C2, C4): **3/12**
+
+The baseline's spontaneous read-back recovered 3 of 6 one-shot drops on
+the *direct* write task (C2) but none of 6 on the *conditional* drop task
+(C4); the repair mutation converted both to 6/6.
 
 ## Held-Out Oracle Success (H1–H4)
 
@@ -342,9 +379,20 @@ drop task (C4); the repair mutation converted both to 6/6.
 Per task (6 reps each): baseline `H1 6 · H2 6 · H3 6 · H4 5` (single failure:
 H4 rep 6 — the model's one write was silently dropped and it finalized with
 `x` still `A`); repair `6 · 6 · 6 · 6`; regression `H1 3 · H2 1 · H3 0 ·
-H4 0`. Notably, the model **spontaneously** verified and recovered from the
-held-out silent drops almost always (H2: 6/6 baseline) — far more robust
-than the hypothesis assumed.
+H4 0`.
+
+Fault-specific split — **keep the two quantities separate**:
+
+- baseline held-out success **overall** (H1–H4): **23/24**
+- baseline held-out success on **DropFirstWrite tasks only** (H2, H4):
+  **11/12** (H2 6/6, H4 5/6)
+- baseline held-out success on **Reliable tasks only** (H1, H3): **12/12**
+
+The model spontaneously verified/recovered on 11 of the 12 held-out
+silent-fault baseline episodes — the hypothesis assumed a much lower rate.
+(Only 12 held-out baseline episodes experienced a silent-fault task; the
+23/24 figure additionally includes the 12 reliable-task episodes, which
+are not evidence of drop recovery.)
 
 ## Held-Out Pairwise Results
 
@@ -356,8 +404,9 @@ than the hypothesis assumed.
 
 The single win: H4 rep 6 (baseline failed on the silent drop; repair
 recovered via read-back/retry). The baseline failed only 1 of 24 held-out
-episodes, leaving essentially no headroom for the improvement mutation to
-demonstrate significance.
+episodes overall — and only 1 of the 12 held-out DropFirstWrite episodes
+(H4 rep 6) — so the improvement mutation had exactly one discordant pair
+available out of 24 valid pairs.
 
 **candidate_regression vs baseline**
 
@@ -365,9 +414,11 @@ demonstrate significance.
 |---|---|---|---|---|---|
 | 0 | 19 | 5 | 19 | 3.814697265625e-06 | **quality_regression** |
 
-The 5 ties are episodes where the model *disobeyed* the regression
-instruction and wrote the state anyway (mostly H1: 3/6 baseline-success
-mirrors); 19 episodes ended with the state unmodified.
+Of the 5 ties, 4 are episodes where the model *disobeyed* the regression
+instruction and wrote the state anyway (H1: 3, H2: 1 — mirroring baseline
+successes); the 5th is H4 rep 6, where *both* baseline and candidate
+failed (baseline's dropped write unrecovered, candidate never wrote). The
+19 losses all ended with the requested state unmodified.
 
 ## Cost / Usage
 
@@ -400,9 +451,15 @@ Overall held-out hit ratio: 95.7% (160,640 cached of 167,823 nominal).
 | candidate_regression | 2 | 16 | 24,326 | 23,520 | 806 | 96.7% |
 | candidate_regression | 3 | 16 | 22,682 | 21,600 | 1,082 | 95.2% |
 
-Hit ratios are flat across positions within each condition (92.9%–96.7%);
-no condition was systematically advantaged or disadvantaged by its order in
-the permutation schedule.
+The six-permutation design **balanced condition position exactly** (each
+condition ran 2× first, 2× second, 2× third per task; every condition ran
+2 episodes in each position overall per split cell). Provider-reported
+cache-hit ratios ranged from 92.9% to 96.7% across the 18
+condition-position cells, with no obvious monotonic position pattern.
+This does **not** prove cache effects were absent: position balance
+removes *systematic* ordering bias only, and server-side cache state
+(warm/evicted between runs) is not directly observable beyond the
+reported ratios.
 
 ## Failure Resource Consumption
 
@@ -429,23 +486,37 @@ misprice the regression candidate.
 - held-out `candidate_regression` = **quality_regression** (expected
   `quality_regression`) — 0 wins / 19 losses / 5 ties, p = 3.8e-06
 
-Why refuted, faithfully: the Qwen-27B model **spontaneously** verified its
-writes and recovered from the one-shot silent drops on 23 of 24 held-out
-episodes even under the baseline prompt (the 0006-era tendency to
-read-back generalizes to this task family). The registered improvement
-mutation was therefore *near-redundant* on held-out tasks — there was only
-one baseline failure left for it to repair, and one win over 1 non-tied
-pair cannot reach α = 0.05 under the exact sign test. The evaluator
-discriminated the **regression** direction with high confidence but the
-**improvement** arm lacked statistical headroom. On calibration the picture
-was different (baseline failed 9/24, mostly the conditional-drop task C4;
-repair: 9 wins, p = 0.0039 → `quality_improvement`; regression: 11 losses,
-p = 0.00098 → `quality_regression`) — the fault strength that produced
-discriminable separation on calibration did not hold on held-out for this
-model. This is exactly the kind of result pre-registration exists to report
-without reinterpretation: **the one-shot silent drop was too weak a stress
-for this model on held-out tasks**, not a failure of the oracle, the kernel,
-or the statistics — all of which behaved as designed.
+Why refuted, faithfully: baseline succeeded on **23/24** held-out
+episodes overall and on **11/12** held-out DropFirstWrite episodes
+specifically (H2 6/6, H4 5/6). This produced a severe ceiling effect for
+the repair candidate: only one held-out baseline failure (H4 rep 6)
+remained available to become a repair win, so the comparison held 24
+valid pairs but a single non-tied pair — one win cannot reach α = 0.05
+under the exact sign test (p = 1.0). The evaluator discriminated the
+**regression** direction with high confidence, but the **improvement**
+arm lacked statistical headroom.
+
+On calibration the picture was different (baseline failed 9/24;
+baseline on calibration fault tasks 3/12 vs 12/12 on reliable tasks;
+repair: 9 wins, p = 0.0039 → `quality_improvement`; regression: 11
+losses, p = 0.00098 → `quality_regression`). The held-out task family
+therefore behaved very differently from calibration **under the same
+registered one-shot fault class** (calibration fault-task baseline 3/12
+vs held-out fault-task baseline 11/12) — the baseline's spontaneous
+verification policy did not transfer uniformly across the two task
+families.
+
+The observed refutation is **consistent with insufficient held-out
+headroom under the registered one-shot fault/task combination**. The
+oracle, kernel, and registered statistical calculation all behaved
+consistently with their specifications (144/144 audited, 0 infrastructure
+failures, exact sign test applied as registered), but the experiment does
+**not** uniquely identify fault strength as the sole cause: task-family
+difficulty, the baseline's spontaneous policy, and fault × task
+interaction may all contribute. Pre-registration's purpose is to report
+this result without reinterpretation, and this record does exactly that
+— with the diagnosis stated at the strength the evidence supports, no
+more.
 
 ## Evidence We Can Claim
 
@@ -462,14 +533,15 @@ episodes.
 with high confidence (19/24 held-out losses, exact two-sided sign-test
 p = 3.8e-06 ≪ 0.05).
 4. The evaluator **could not** discriminate the controlled robustness-
-improving mutation on held-out tasks, because the real model
-spontaneously recovered from the one-shot silent-write faults on 23 of
-24 held-out baseline episodes, leaving 1 win / 0 losses / 23 ties
-(p = 1.0) — hence the pre-registered **refuted** verdict.
+improving mutation on held-out tasks: baseline succeeded on 11/12
+held-out DropFirstWrite episodes (23/24 overall), leaving 1 win / 0
+losses / 23 ties (p = 1.0) — hence the pre-registered **refuted**
+verdict.
 5. Cache-aware, per-position, per-condition cost accounting was
 reproducible from committed artifacts; hit ratios were flat across
-schedule positions (92.9%–96.7%), supporting the permutation
-counterbalancing.
+schedule positions (92.9%–96.7% across condition-position cells, no
+obvious monotonic position pattern; this bounds but does not prove the
+absence of cache effects).
 6. Failed-episode resource consumption was measured per condition and
 diverged strongly (regression failures are reasoning-heavy and slow),
 demonstrating that a cost dimension distinct from quality is observable
@@ -477,9 +549,11 @@ and material.
 
 We can **not** claim (because the verdict is refuted): that this
 evaluator can discriminate this particular improvement mutation on
-this model for this task family — the fault stress was below the model's
-spontaneous robustness. The negative result localizes to the *stress
-model*, not to the oracle/kernel/statistics components.
+this model for this task family. The result is consistent with
+insufficient held-out headroom under the registered fault/task
+combination, but the experiment does not uniquely prove that fault
+strength alone is the cause; the components (oracle, kernel, statistics)
+behaved as specified, and no stronger causal localization is made.
 
 ## Evidence We Cannot Claim
 
@@ -493,24 +567,41 @@ model*, not to the oracle/kernel/statistics components.
 - no architecture promotion: the 0007 kernel/evaluator stays in the
   experiment crate; promotion requires a separate ADR/PR
 
-**Registered follow-up (0008).** The refutation localizes to the fault
-stress, not the substrate: the one-shot silent drop was below this model's
-spontaneous robustness on held-out tasks (23/24 baseline successes).
-A stronger-stress design — e.g. repeated/probabilistic drops, read
-staleness, or a calibrated difficulty ladder that guarantees a
-mid-range baseline failure rate *before* registering the final tasks —
-is the natural next step. If such a design still yields a repair win
-without regression asymmetry problems, *then* the evaluator's
-discrimination claim can be re-tested. Until then the 0007 record stands
-as: substrate verified; regression discrimination demonstrated; the
-specific improvement mutation under-stressed.
+## 0007 Methodology Limitation
+
+The pre-registered sufficiency gate required **≥ 12 valid pairs** per
+held-out comparison but did **not** require a minimum number of
+*non-tied* (informative) pairs. The repair comparison satisfied the
+gate with 24 valid pairs while containing only **1 non-tied pair**:
+the experiment was *formally sufficient* under the registered rule yet
+had almost no statistical headroom for the improvement comparison.
+**Valid pair count ≠ informative pair count.** This is recorded as a
+limitation of the 0007 methodology. It is *not* a reason to change the
+0007 verdict, and the 0007 decision rule is left exactly as registered.
+
+**Registered follow-up (0008 requirement).** 0008 must **pre-register a
+headroom/information criterion before final evaluation** so that a
+directionally-correct-but-informationally-empty comparison cannot be
+disguised by a pair-count gate. Criteria to investigate later include:
+
+- a minimum baseline failure rate on the stress subset,
+- a minimum expected discordant-pair count,
+- a minimum observed non-tied pair count required before a directional
+  (improvement/regression) classification may be made,
+- a separate pre-finalization difficulty-calibration stage.
+
+No threshold is chosen here: choosing one is itself an experimental
+design question for 0008. The 0007 record stands as: substrate
+verified; regression-direction discrimination demonstrated; the specific
+improvement mutation left without demonstrable headroom under the
+registered design.
 
 ## Artifact Verification
 
 `verify-artifacts` result: **PASSED** (144 records; design completeness,
-six-permutation balance, fault-injection audit, oracle recomputation,usage
-sanity + reasoning-content redaction, and summary deep-equality all hold
-against the on-disk artifacts).
+six-permutation balance, fault-injection audit, oracle recomputation,
+usage sanity + reasoning-content redaction, and summary deep-equality all
+hold against the on-disk artifacts).
 
 **Post-hoc correction (analysis-only, recorded per the 0006 precedent).**
 After the run, the summary deep-equality check initially failed on four
@@ -525,10 +616,14 @@ inaccuracy, a tamper that nudges a decimal's final digit by one in an
 f64 *ratio* field is *not* guaranteed to be detected by the deep
 equality check; all decision-relevant counts (integers, strings,
 booleans) parse exactly and remain fully tamper-evident, and the
-tamper regression tests exercise the decision fields. The raw artifacts
-are byte-identical to those written at run completion (SHA-256 recorded
-above); the correction landed in a post-run commit that changed only the
-verifier.
+tamper regression tests exercise the decision fields. Equivalently: all
+decision-relevant statistical counts and classifications (wins/losses/
+ties, sign-test inputs, pair counts, fault counts) are recomputed from
+raw integer/bool/string evidence; the affected `f64` fields (e.g.
+`cache_hit_ratio`) are *descriptive, not verdict inputs*. The raw
+artifacts are byte-identical to those written at run completion
+(SHA-256 recorded above); the correction landed in a post-run commit that
+changed only the verifier.
 
 ## Production Changes
 

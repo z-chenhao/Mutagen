@@ -343,12 +343,41 @@ pub struct PairComparison {
 }
 
 /// Fault-schedule audit across all episodes.
+///
+/// The `registered_*` fields count episodes by the fault mode registered
+/// for their task. The `*_target_write` / `triggered_*` / `dropped_*`
+/// fields count what the audit log actually shows. The two families are
+/// deliberately distinct: a `DropFirstWrite` episode in which the model
+/// never writes the registered key is registered as DropFirstWrite, has
+/// zero target-key writes, and therefore a *never-triggered* fault — it
+/// still conforms to the schedule (the registered one-shot drop is
+/// conditional on a write occurring) and must not be reclassified as
+/// Reliable. `registered_*` and `triggered_*` are not expected to be
+/// equal in general.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FaultAudit {
     pub episodes_checked: u32,
     pub episodes_passed: u32,
     pub violations: Vec<String>,
     pub passed: bool,
+    /// Episodes whose task registered the Reliable fault mode.
+    pub registered_reliable_episodes: u32,
+    /// Episodes whose task registered DropFirstWrite(key).
+    pub registered_drop_first_write_episodes: u32,
+    /// DropFirstWrite episodes in which the model issued at least one
+    /// write to the registered key.
+    pub drop_mode_episodes_with_target_write: u32,
+    /// DropFirstWrite episodes in which the model never wrote the
+    /// registered key (fault never triggered; schedule still conforms).
+    pub drop_mode_episodes_without_target_write: u32,
+    /// DropFirstWrite episodes in which at least one write attempt was
+    /// actually silently dropped (== with_target_write when the audit
+    /// passes, because the registered drop is one-shot and fires exactly
+    /// on the first target-key write).
+    pub triggered_drop_episodes: u32,
+    /// Total silently-dropped write attempts across all episodes (==
+    /// triggered_drop_episodes when the audit passes).
+    pub total_dropped_write_attempts: u32,
 }
 
 /// Pre-registered experiment-level conclusion (spec §48).
@@ -794,11 +823,59 @@ pub fn compute_summary(records: &[EpisodeRecord], registry: &[TaskSpec]) -> Summ
     }
     let passed = violations.is_empty();
     let passed_episodes = total - violations.len() as u32;
+    // Machine-derived fault accounting, all values computed from the
+    // immutable records: registered mode vs actually-triggered fault are
+    // reported as separate quantities (see FaultAudit docs).
+    let mut reg_reliable = 0u32;
+    let mut reg_drop = 0u32;
+    let mut drop_with_write = 0u32;
+    let mut drop_without_write = 0u32;
+    let mut triggered = 0u32;
+    let mut total_dropped = 0u32;
+    for r in records {
+        let mode = r
+            .fault_mode
+            .get("mode")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let dropped = r
+            .environment_write_attempts
+            .iter()
+            .filter(|a| !a.applied)
+            .count() as u32;
+        total_dropped += dropped;
+        match mode {
+            "reliable" => reg_reliable += 1,
+            "drop_first_write" => {
+                reg_drop += 1;
+                let key = r
+                    .fault_mode
+                    .get("key")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                if r.environment_write_attempts.iter().any(|a| a.key == key) {
+                    drop_with_write += 1;
+                } else {
+                    drop_without_write += 1;
+                }
+                if dropped > 0 {
+                    triggered += 1;
+                }
+            }
+            _ => {}
+        }
+    }
     let fault_audit = FaultAudit {
         episodes_checked: total,
         episodes_passed: passed_episodes,
         violations,
         passed,
+        registered_reliable_episodes: reg_reliable,
+        registered_drop_first_write_episodes: reg_drop,
+        drop_mode_episodes_with_target_write: drop_with_write,
+        drop_mode_episodes_without_target_write: drop_without_write,
+        triggered_drop_episodes: triggered,
+        total_dropped_write_attempts: total_dropped,
     };
 
     // Artifact completeness: exactly the registered factorial design and
@@ -2142,5 +2219,134 @@ mod tests {
         let s = compute_summary(&records, &reg);
         let errors = verify_artifacts(&v, &serde_json::to_value(&s).unwrap(), &reg);
         assert!(errors.iter().any(|e| e.contains("fault audit")));
+    }
+
+    // --- machine-derived fault accounting (registered vs triggered) ---
+
+    #[test]
+    fn fault_accounting_registered_counts_match_design() {
+        let reg = registry();
+        let records = synthetic_records(&reg);
+        let s = compute_summary(&records, &reg);
+        // 8 tasks: C1/C3/H1/H3 reliable, C2/C4/H2/H4 DropFirstWrite;
+        // 3 conditions x 6 repetitions = 18 episodes per task.
+        assert_eq!(s.fault_audit.registered_reliable_episodes, 72);
+        assert_eq!(s.fault_audit.registered_drop_first_write_episodes, 72);
+        assert_eq!(
+            s.fault_audit.registered_reliable_episodes
+                + s.fault_audit.registered_drop_first_write_episodes,
+            144
+        );
+    }
+
+    #[test]
+    fn fault_accounting_derives_triggered_from_records() {
+        let reg = registry();
+        let records = synthetic_records(&reg);
+        let s = compute_summary(&records, &reg);
+        // In the synthetic set every drop-mode episode except the 24
+        // no-write regression episodes and the single no-write
+        // infrastructure episode (C2 rep 6 baseline) writes the
+        // registered key.
+        assert_eq!(s.fault_audit.drop_mode_episodes_with_target_write, 47);
+        assert_eq!(s.fault_audit.drop_mode_episodes_without_target_write, 25);
+        assert_eq!(
+            s.fault_audit.drop_mode_episodes_with_target_write
+                + s.fault_audit.drop_mode_episodes_without_target_write,
+            72
+        );
+        // Invariants that hold whenever the per-record audit passes.
+        assert!(s.fault_audit.passed);
+        assert_eq!(s.fault_audit.triggered_drop_episodes, 47);
+        assert_eq!(s.fault_audit.total_dropped_write_attempts, 47);
+        // The one-shot schedule: every triggered drop is exactly one
+        // dropped attempt, so triggered episodes == total dropped writes.
+        assert_eq!(
+            s.fault_audit.triggered_drop_episodes,
+            s.fault_audit.total_dropped_write_attempts
+        );
+    }
+
+    #[test]
+    fn fault_accounting_triggered_is_distinct_from_registered() {
+        let reg = registry();
+        let records = synthetic_records(&reg);
+        let s = compute_summary(&records, &reg);
+        // Registered 72 DropFirstWrite episodes vs 47 triggered drops:
+        // the 25 episodes in which the model never wrote the registered
+        // key left the registered fault untriggered and must not inflate
+        // either the reliable count or the trigger count.
+        assert!(
+            s.fault_audit.triggered_drop_episodes
+                < s.fault_audit.registered_drop_first_write_episodes
+        );
+        assert_eq!(s.fault_audit.registered_reliable_episodes, 72);
+    }
+
+    #[test]
+    fn fault_accounting_no_write_drop_episode_stays_drop_mode() {
+        let reg = registry();
+        let records = synthetic_records(&reg);
+        // A DropFirstWrite episode whose model never writes the registered
+        // key (synthetic regression episodes have no tool calls).
+        let idx = records
+            .iter()
+            .position(|r| {
+                r.fault_mode.get("mode").and_then(Value::as_str) == Some("drop_first_write")
+                    && r.environment_write_attempts.is_empty()
+            })
+            .expect("synthetic set contains a no-write drop-mode episode");
+        let r = &records[idx];
+        // The per-record audit passes: the registered one-shot drop is
+        // conditional on a write occurring; nothing to violate.
+        assert!(audit_record(r).is_none());
+        let key = r
+            .fault_mode
+            .get("key")
+            .and_then(Value::as_str)
+            .unwrap()
+            .to_string();
+        assert!(!r.environment_write_attempts.iter().any(|a| a.key == key));
+        // And the summary accounts it as registered DropFirstWrite /
+        // untriggered — never as Reliable.
+        let s = compute_summary(&records, &reg);
+        assert_eq!(s.fault_audit.registered_drop_first_write_episodes, 72);
+        assert_eq!(s.fault_audit.registered_reliable_episodes, 72);
+        assert!(s.fault_audit.drop_mode_episodes_without_target_write > 0);
+        assert_eq!(
+            s.fault_audit.drop_mode_episodes_with_target_write
+                + s.fault_audit.drop_mode_episodes_without_target_write,
+            72
+        );
+    }
+
+    #[test]
+    fn fault_accounting_reclassifying_drop_as_reliable_is_detected() {
+        let reg = registry();
+        let mut records = synthetic_records(&reg);
+        // Tamper: a no-write DropFirstWrite record relabeled as Reliable
+        // while keeping no dropped writes would pass the *per-write* rules
+        // of either mode — the summary must still reflect what the records
+        // actually say, and the registry cross-check must fail.
+        let idx = records
+            .iter()
+            .position(|r| {
+                r.fault_mode.get("mode").and_then(Value::as_str) == Some("drop_first_write")
+                    && r.environment_write_attempts.is_empty()
+            })
+            .unwrap();
+        records[idx].fault_mode = json!({ "mode": "reliable" });
+        let v = values(&records);
+        let s = compute_summary(&records, &reg);
+        // Derived from records: now 73 reliable / 71 drop.
+        assert_eq!(s.fault_audit.registered_reliable_episodes, 73);
+        assert_eq!(s.fault_audit.registered_drop_first_write_episodes, 71);
+        // And the verifier catches the registry mismatch.
+        let errors = verify_artifacts(&v, &serde_json::to_value(&s).unwrap(), &reg);
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("fault_mode does not match registry"))
+        );
     }
 }

@@ -437,7 +437,13 @@
     "episodes_checked": 144,
     "episodes_passed": 144,
     "violations": [],
-    "passed": true
+    "passed": true,
+    "registered_reliable_episodes": 72,
+    "registered_drop_first_write_episodes": 72,
+    "drop_mode_episodes_with_target_write": 58,
+    "drop_mode_episodes_without_target_write": 14,
+    "triggered_drop_episodes": 58,
+    "total_dropped_write_attempts": 58
   },
   "conclusion": {
     "result": "refuted",

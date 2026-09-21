@@ -5,6 +5,7 @@
 //!   run --repetitions 6 --trajectories PATH --summary PATH
 //!   self-test
 //!   verify-artifacts --trajectories PATH --summary PATH
+//!   recompute-summary --trajectories PATH --summary PATH
 //!
 //! `run` requires MUTAGEN_EXP_BASE_URL and MUTAGEN_EXP_MODEL
 //! (MUTAGEN_EXP_API_KEY optional). If they are missing, the experiment
@@ -106,6 +107,52 @@ fn cmd_run(flags: Flags) -> Result<(), String> {
     experiment::run(&config)
 }
 
+/// Offline summary regeneration (post-run analysis support): recomputes
+/// the derived summary strictly from the immutable raw trajectories and
+/// the committed task registry, and overwrites the summary file. Makes no
+/// model calls and changes no raw evidence. Provenance fields (model,
+/// endpoint, temperature, code-under-test commit, prompt hashes) are
+/// carried in the records themselves, so regeneration preserves them.
+fn cmd_recompute_summary(flags: Flags) -> Result<(), String> {
+    let traj_path = flags
+        .trajectories
+        .ok_or("recompute-summary requires --trajectories")?;
+    let summary_path = flags
+        .summary
+        .ok_or("recompute-summary requires --summary")?;
+
+    let raw = std::fs::read_to_string(&traj_path)
+        .map_err(|e| format!("cannot read {}: {e}", traj_path.display()))?;
+    let mut records = Vec::new();
+    for (i, line) in raw.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let r: trace::EpisodeRecord = serde_json::from_str(line).map_err(|e| {
+            format!(
+                "{}: line {}: invalid record JSON: {e}",
+                traj_path.display(),
+                i + 1
+            )
+        })?;
+        records.push(r);
+    }
+    let dir = experiment::crate_dir();
+    let registry = experiment::load_tasks(&dir.join("tasks.json"))
+        .map_err(|e| format!("cannot load task registry: {e}"))?;
+    let summary = trace::compute_summary(&records, &registry);
+    let summary_json = serde_json::to_string_pretty(&summary)
+        .map_err(|e| format!("cannot serialize summary: {e}"))?;
+    std::fs::write(&summary_path, summary_json + "\n")
+        .map_err(|e| format!("write failure: {e}"))?;
+    println!(
+        "summary recomputed offline: {} records, {} (no model calls)",
+        records.len(),
+        summary_path.display()
+    );
+    Ok(())
+}
+
 /// Full artifact verification from files (spec §62, §77).
 fn cmd_verify_artifacts(flags: Flags) -> Result<(), String> {
     let traj_path = flags
@@ -178,7 +225,11 @@ fn main() -> ExitCode {
         "run" => parse_flags(&rest, true).and_then(cmd_run),
         "self-test" => experiment::self_test(),
         "verify-artifacts" => parse_flags(&rest, false).and_then(cmd_verify_artifacts),
-        _ => Err("usage: mutagen-exp-0007 <run --repetitions 6 --trajectories P --summary S | self-test | verify-artifacts --trajectories P --summary S>".to_string()),
+        "recompute-summary" => parse_flags(&rest, false).and_then(cmd_recompute_summary),
+        _ => Err(
+            "usage: mutagen-exp-0007 <run --repetitions 6 --trajectories P --summary S | self-test | verify-artifacts --trajectories P --summary S | recompute-summary --trajectories P --summary S>"
+                .to_string(),
+        ),
     };
 
     match outcome {

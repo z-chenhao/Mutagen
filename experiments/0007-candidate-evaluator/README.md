@@ -58,7 +58,7 @@ Cargo.toml            standalone workspace; deps: serde, serde_json, ureq, sha2
 prompts/              baseline.md, repair.md, regression.md  (frozen before any run)
 tasks.json            8 tasks: C1–C4 calibration, H1–H4 held-out
 src/
-  main.rs             CLI: run / self-test / verify-artifacts
+  main.rs             CLI: run / self-test / verify-artifacts / recompute-summary
   experiment.rs       prompts, invariants, registry, run orchestration, self-test
   kernel.rs           the episode loop (turns, limits, usage, requests)
   model.rs            one concrete synchronous OpenAI-compatible client
