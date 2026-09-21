@@ -285,7 +285,7 @@ Values: PASS / FAIL only.
 rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
 cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)
 Darwin zhuchenhaos-Mac-Studio.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64
-code-under-test commit: __CODE_UNDER_TEST_SHA__ (branch exp/0005-effect-metadata-discrimination; base main 39d2cac)
+code-under-test commit: 171ed0e923a6693c5a76057957b4355f12f99981 (branch exp/0005-effect-metadata-discrimination; base main 39d2cac)
 ```
 
 Hardware class: Apple M-series Mac (arm64). Dependencies: none added; the
