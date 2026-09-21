@@ -319,7 +319,7 @@ mod tests {
                 "--selection".into(),
                 "m.json".into(),
                 "--code-commit".into(),
-                "a".repeat(40).into(),
+                "a".repeat(40),
                 "--endpoint".into(),
                 "http://redacted/v1".into(),
             ],
