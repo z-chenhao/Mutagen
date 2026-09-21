@@ -292,7 +292,7 @@ invalid if the historical baseline does not replay.
 rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
 cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)
 Darwin zhuchenhaos-Mac-Studio.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64
-code-under-test commit: bb8892a3a60ff5545282cbffdd282b2e01445a51 (branch exp/0003-trajectory-divergence; base main 21b755b)
+code-under-test commit: 901181ae830bfaaf934e45f249f06b92d80f4ae0 (branch exp/0003-trajectory-divergence; base main 21b755b; supersedes bb8892a, whose self-referential live-log instrumentation was replaced by the external live-fallback callback)
 ```
 
 Hardware class: Apple M-series Mac (arm64). Dependencies: none added; the
