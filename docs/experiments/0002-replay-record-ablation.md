@@ -172,7 +172,7 @@ corresponding full-record control does not work.
 rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
 cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)
 Darwin zhuchenhaos-Mac-Studio.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64
-code-under-test commit: __EXPERIMENT_COMMIT_SHA__ (branch exp/0002-replay-record-ablation; base main ae3d4b9)
+code-under-test commit: 72ad9c95418337f7e7b6fa6f696e3ffb6e50ce06 (branch exp/0002-replay-record-ablation; base main ae3d4b9)
 ```
 
 Hardware class: Apple M-series Mac (arm64). Dependencies: none added;
