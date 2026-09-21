@@ -1,0 +1,462 @@
+{
+  "experiment_id": "0006",
+  "code_under_test_commit": "fdca01e1a21a958ceb318f44231ad60c91f141e4",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "temperature": 0.2,
+  "baseline_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "candidate_prompt_sha256": "798059e34d71aff90420ad687c5990e6707fbc48e6fb26c44dcc54bdf2b0a613",
+  "task_suite_sha256": "4bc8852e8e2de2a2ddb2eab3db9c6d67f9af783df8ee4c7ff398047618caeb1b",
+  "total_episodes": 36,
+  "eligible_episodes": 27,
+  "ineligible_episodes": 9,
+  "eligible_pairs": 12,
+  "ineligible_pairs": 6,
+  "baseline": {
+    "successful_writes": 13,
+    "verified_writes": 0,
+    "verification_rate": 0.0
+  },
+  "candidate": {
+    "successful_writes": 11,
+    "verified_writes": 11,
+    "verification_rate": 1.0
+  },
+  "baseline_total_tool_calls": 22,
+  "candidate_total_tool_calls": 31,
+  "trajectory_tags": {
+    "added_call": {
+      "count": 9,
+      "task_ids": [
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "pairs": [
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        }
+      ]
+    },
+    "argument_change": {
+      "count": 3,
+      "task_ids": [
+        "T5"
+      ],
+      "pairs": [
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        }
+      ]
+    },
+    "exact": {
+      "count": 3,
+      "task_ids": [
+        "T1"
+      ],
+      "pairs": [
+        {
+          "task_id": "T1",
+          "task_name": "read_x",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "exact"
+          ]
+        },
+        {
+          "task_id": "T1",
+          "task_name": "read_x",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "exact"
+          ]
+        },
+        {
+          "task_id": "T1",
+          "task_name": "read_x",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "exact"
+          ]
+        }
+      ]
+    },
+    "novel_call": {
+      "count": 6,
+      "task_ids": [
+        "T3",
+        "T5"
+      ],
+      "pairs": [
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T3",
+          "task_name": "write_x",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        },
+        {
+          "task_id": "T5",
+          "task_name": "unrelated_read_after_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "novel_call",
+            "argument_change"
+          ]
+        }
+      ]
+    },
+    "omitted_call": {
+      "count": 0,
+      "task_ids": [],
+      "pairs": []
+    },
+    "reordered": {
+      "count": 0,
+      "task_ids": [],
+      "pairs": []
+    },
+    "repeated_count_change": {
+      "count": 3,
+      "task_ids": [
+        "T4"
+      ],
+      "pairs": [
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        }
+      ]
+    },
+    "state_effect_order_change": {
+      "count": 3,
+      "task_ids": [
+        "T4"
+      ],
+      "pairs": [
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 1,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 2,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        },
+        {
+          "task_id": "T4",
+          "task_name": "conditional_write",
+          "repetition": 3,
+          "eligible": true,
+          "tags": [
+            "added_call",
+            "repeated_count_change",
+            "state_effect_order_change"
+          ]
+        }
+      ]
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "T1",
+      "task_name": "read_x",
+      "eligible_pairs": 3,
+      "tags": [
+        "exact"
+      ],
+      "non_exact_pairs": 0
+    },
+    {
+      "task_id": "T2",
+      "task_name": "read_both",
+      "eligible_pairs": 0,
+      "tags": [],
+      "non_exact_pairs": 0
+    },
+    {
+      "task_id": "T3",
+      "task_name": "write_x",
+      "eligible_pairs": 3,
+      "tags": [
+        "added_call",
+        "novel_call"
+      ],
+      "non_exact_pairs": 3
+    },
+    {
+      "task_id": "T4",
+      "task_name": "conditional_write",
+      "eligible_pairs": 3,
+      "tags": [
+        "added_call",
+        "repeated_count_change",
+        "state_effect_order_change"
+      ],
+      "non_exact_pairs": 3
+    },
+    {
+      "task_id": "T5",
+      "task_name": "unrelated_read_after_write",
+      "eligible_pairs": 3,
+      "tags": [
+        "added_call",
+        "argument_change",
+        "novel_call"
+      ],
+      "non_exact_pairs": 3
+    },
+    {
+      "task_id": "T6",
+      "task_name": "two_writes",
+      "eligible_pairs": 0,
+      "tags": [],
+      "non_exact_pairs": 0
+    }
+  ],
+  "read_only_control_write_count": 0,
+  "read_only_control_write_occurrences": [],
+  "kernel_failures": {
+    "http_failures": 0,
+    "parse_failures": 0,
+    "unknown_tools": 0,
+    "invalid_arguments": 0,
+    "parallel_tool_calls": 9,
+    "turn_limit": 0,
+    "tool_call_limit": 0,
+    "eligible_episodes": 27
+  },
+  "timing": {
+    "total_wall_time_ms": 162202,
+    "model_wait_time_ms": 162202,
+    "tool_execution_time_us": 113,
+    "kernel_overhead_estimate_ms": 0,
+    "episodes": 36
+  },
+  "usage": {
+    "prompt_tokens": 52731,
+    "completion_tokens": 6121,
+    "total_tokens": 58852,
+    "model_requests": 93,
+    "episodes": 36,
+    "cached_prefix_tokens": null,
+    "effective_uncached_prefill_tokens": null,
+    "note": "The raw artifact persists only prompt/completion/total tokens per episode. The provider's prefix-cache accounting and its reasoning/visible-text split were not persisted by the 0006 parser, so cached_prefix_tokens and effective_uncached_prefill_tokens are null (not zero): the run-time prefix-cache hit rate is UNKNOWN from this artifact. completion_tokens includes reasoning and cannot be decomposed. prompt_tokens is nominal (full prompt per request), not uncached prefill work. The one-line candidate mutation is a system-prompt change; it does not alter the recorded token accounting mechanism."
+  },
+  "conclusion": "inconclusive"
+}
