@@ -1459,7 +1459,16 @@ pub fn verify_artifacts(
 
     // --- summary deep-equality ---
     let recomputed = compute_summary(&records, registry);
-    let recomputed_value = serde_json::to_value(&recomputed).unwrap_or(Value::Null);
+    // Post-hoc fix (recorded in the experiment document): serde_json 1.0.151
+    // has a 1 ulp inaccuracy in its decimal-to-f64 parser, so the summary
+    // parsed from the on-disk file can differ from the in-memory
+    // recomputation in the low bit of f64 fields (e.g. `cache_hit_ratio`)
+    // even though both derive from identical integer sums. Canonicalize the
+    // recomputed summary through the same serialize-then-parse pipeline as
+    // the on-disk file before the deep comparison. This changes no
+    // measurement; the raw artifacts remain exactly as written.
+    let recomputed_value: Value =
+        serde_json::from_str(&serde_json::to_string(&recomputed).unwrap()).unwrap_or(Value::Null);
     if canonical_json(&recomputed_value) != canonical_json(summary_value) {
         errors.push(
             "summary does not deep-equal the recomputed summary from raw records".to_string(),
