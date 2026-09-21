@@ -96,6 +96,28 @@ a production type) is an ordered trace of
 `{call {operation, argument}, outcome}`, recording each interaction's
 identity, its outcome, and its trajectory position.
 
+## Instrumentation: the live fallback boundary
+
+Every replay condition receives an explicit experiment-local live
+fallback callback (a small local closure — no trait, no reusable
+framework). The callback owns the live-call log and returns a
+distinguishable live value (`Value("LIVE")`) if invoked, so it is a
+*real* alternative path that could let a candidate continue past an
+evidence gap. The replay mechanism receives only the callback — never the
+log directly — and the live callback is its only path to live state; the
+replay policy under test deliberately refuses to use it. After each
+replay, the driver asserts that the callback invocation log is empty,
+demonstrating that replay did not fall back to live state — externally
+observable rather than self-reported by the replay implementation. A
+driver-side probe of the callback (outside any replay) confirms it is a
+working path: the probe invocation is logged and returns
+`Value("LIVE")`. This is experiment scaffolding, not a production
+architecture.
+
+The consumption log (which historical records a replay consumed) is
+likewise owned by the driver, outside the replay action; it is the
+evidence for "record i was not consumed" claims.
+
 ## Candidate A — Subset
 
 Trajectory: `read("left")` only; output `"L"`. It **omits** the
@@ -104,12 +126,12 @@ history while every requested interaction has recorded evidence.
 
 - S1 — the candidate executes entirely from recorded evidence: identity-
   aware replay resolves `read("left")` by exact interaction identity,
-  yields `"L"`, and the external live-consultation log (owned by the
-  driver, outside the replay) stays empty.
+  yields `"L"`, and the driver-owned live-fallback invocation log stays
+  empty.
 - S2 — the unused historical interaction does not invalidate the replay:
   the externally owned consumption log shows record 0 (`read("left")`)
   consumed and record 1 (`read("right")`) **not** consumed, and the
-  live-consultation log stays empty. The replay does not force the
+  live-fallback invocation log stays empty. The replay does not force the
   candidate to execute `read("right")`.
 
 Allowed interpretation if S1/S2 pass: *in this deterministic read-only
@@ -129,9 +151,9 @@ Two local experimental replay mechanisms are tested:
 - R1 (condition B1, identity-aware experimental replay): each candidate
   call is resolved by its exact recorded interaction identity
   (operation + argument). Expected: `read("right") -> R`,
-  `read("left") -> L`, output `"R|L"`, both records consumed, no live
-  consultation. PASS if the reordered candidate executes correctly from
-  historical evidence.
+  `read("left") -> L`, output `"R|L"`, both records consumed, and the
+  live-fallback callback never invoked. PASS if the reordered candidate
+  executes correctly from historical evidence.
 - R2 (condition B2, strict positional negative control): a deliberately
   strict mechanism requiring historical position *i* == candidate call
   *i*. The candidate's first call `read("right")` does not match
@@ -157,12 +179,14 @@ covered.
   `read("left") -> L`, then produces an explicit
   `MissingHistoricalEvidence("read(\"novel\")")` result (a private,
   local error type in the example; not a production error).
-- N2 — the evidence gap has no fallback: the external consumption log
-  shows only record 0 consumed — the historical `read("right")` was not
-  substituted in — the live-consultation log stays empty (no live
-  environment), and the run is an error, not a fabricated value. The
-  candidate therefore **cannot** be claimed as fully replayed from
-  historical evidence.
+- N2 — the evidence gap has no fallback, derived from three external
+  observations: the consumption log shows only record 0 consumed (the
+  historical `read("right")` was not substituted in); the live-fallback
+  callback invocation log stays empty — the callback would have returned
+  a distinguishable live value if it had been invoked, but it was not;
+  and the run is an error, not a fabricated value. The candidate
+  therefore **cannot** be claimed as fully replayed from historical
+  evidence.
 
 Allowed interpretation: *under a replay regime restricted to the recorded
 historical evidence, this candidate cannot be fully replayed because one
@@ -216,18 +240,22 @@ Held fixed across every condition:
 - Same deterministic read-only outcomes (`L`, `R`; no errors, no
   mutation).
 - Same read-only interaction semantics for every replay.
-- No live environment during replay (the live environment is consulted
-  only during the history phase, and each replay's live-consultation log
-  is asserted empty afterwards).
+- No live fallback during replay: each replay receives the
+  experiment-local live fallback callback (the only path to live state),
+  and each condition's callback invocation log is asserted empty
+  afterwards. The callback is a real path — it would return a
+  distinguishable live value if invoked — but the replay policy under
+  test deliberately refuses it.
 - No randomness, no wall clock, no I/O, no async.
 - Same candidate behavior code within each comparison; only the
   argument trajectory exercised by that code differs.
 - Same non-divergence replay information (the full record is used for
   every replay condition; nothing is ablated in this experiment).
-- External instrumentation: the consumption log and live-consultation
-  log are owned by the experiment driver, outside the tested replay
-  action; they are read only after the replay is dropped. No metric is
-  self-reported by the code it measures.
+- External instrumentation: the live fallback callback owns the
+  live-call log and the driver reads it only after the replay is
+  dropped; the consumption log is likewise driver-owned and read only
+  after the replay is dropped. No metric is self-reported by the code it
+  measures.
 
 ## Input / Replay Dataset
 
@@ -282,30 +310,32 @@ Raw output of a run (identical across three runs):
 ```
 Experiment 0003 — Replay Under Trajectory Divergence
 history: read("left") -> Value("L"), read("right") -> Value("R"); baseline output "L|R"
-  control: read("left") -> L, read("right") -> R, output "L|R"; no live consultation
+  instrumentation: live fallback callback logs each invocation and returns Value("LIVE"); every replay holds the callback but must never invoke it
+  control: read("left") -> L, read("right") -> R, output "L|R"; live fallback never invoked
 F1 PASS
-  candidate A: read("left") -> L, output "L"; unused historical interaction read("right") remains unconsumed
+  candidate A: read("left") -> L, output "L"; unused historical interaction read("right") remains unconsumed; live fallback never invoked
 S1 PASS
 S2 PASS
-  candidate B (identity-aware): read("right") -> R, read("left") -> L, output "R|L"
+  candidate B (identity-aware): read("right") -> R, read("left") -> L, output "R|L"; live fallback never invoked
   candidate B (strict positional): mismatch at position 0 — expected read("left"), got read("right"); evidence existed for both requested interactions under identity-aware replay
 R1 PASS
 R2 PASS
-  candidate C: read("left") -> L, then read("novel") -> MissingHistoricalEvidence(read("novel")); no live lookup, no substitution of read("right"), no fabricated value
+  candidate C: read("left") -> L, then read("novel") -> MissingHistoricalEvidence(read("novel")); live fallback never invoked, no substitution of read("right"), no fabricated value
 N1 PASS
 N2 PASS
 Conclusion: supported
 ```
 
 - F1 PASS — the baseline replayed `"L|R"` from the record, consuming both
-  records in order, with the live-consultation log empty.
+  records in order, with the live-fallback callback never invoked.
 - S1 PASS — the subset candidate produced `"L"` with the
-  live-consultation log empty.
+  live-fallback invocation log empty.
 - S2 PASS — the external consumption log shows `read("left")` (record 0)
   consumed and `read("right")` (record 1) unconsumed; the replay neither
   invalidated the run nor force-executed the unused interaction.
 - R1 PASS — the reordered candidate produced `"R|L"` (the candidate's own
-  order) with both records consumed and no live consultation.
+  order) with both records consumed and the live-fallback callback never
+  invoked.
 - R2 PASS — strict positional matching rejected the reorder at position 0
   (expected `read("left")`, got `read("right")`) while R1 shows evidence
   existed for both requested interactions.
@@ -313,8 +343,9 @@ Conclusion: supported
   `MissingHistoricalEvidence(read("novel"))` after the covered
   `read("left")` succeeded.
 - N2 PASS — after the gap: consumption log = [0] only (no substitution of
-  `read("right")`), live-consultation log empty (no live state, no
-  default), and the run is an error, not a fabricated value.
+  `read("right")`), live-fallback invocation log empty (the callback is a
+  real path that would return `Value("LIVE")` if invoked; it was not),
+  and the run is an error, not a fabricated value.
 
 ## Three-Run Reproducibility
 
@@ -368,8 +399,10 @@ replay policy, a matching key, or a comparability criterion.
 - Novel interaction (N1, N2): the unseen call produced an explicit
   `MissingHistoricalEvidence` with no live, default, or substitution
   fallback.
-- External instrumentation: "live state not consulted" and "record not
-  consumed" are both asserted from driver-owned logs external to the
+- External instrumentation: "live state not consulted" is asserted from
+  the driver-owned invocation log of the live fallback callback — the
+  only path a replay could take to live state — and "record not consumed"
+  from the driver-owned consumption log; both are external to the
   replay action (per the Experiment 0001/0002 lesson against
   self-reporting).
 
@@ -387,6 +420,9 @@ This experiment does **not** establish or select:
 - the claim that unused historical calls are always irrelevant;
 - the claim that reordering is always safe;
 - the claim that exact-call identity is the final matching key;
+- the claim that live fallbacks should never be permitted in any replay
+  regime — the experiment only shows that this particular replay regime
+  did not use one;
 - the claim that historical evidence is the only possible source of
   controlled evidence;
 - trajectory coverage as a final evaluator architecture;

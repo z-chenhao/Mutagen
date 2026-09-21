@@ -66,8 +66,9 @@ struct RecordedInteraction {
 }
 
 /// Explicit failures of the experimental replay. Every variant makes a gap
-/// or a mismatch visible; replay never consults live state, never applies a
-/// default, and never fabricates a value.
+/// or a mismatch visible; the replay regime never applies a default and
+/// never fabricates a value, and its only path to live state (the
+/// instrumented fallback callback) is deliberately not used by it.
 #[derive(Debug, PartialEq, Eq)]
 enum ExperimentalReplayError {
     /// The requested interaction has no recorded historical outcome.
@@ -84,24 +85,46 @@ enum ExperimentalReplayError {
 /// The external-interaction boundary: how a behavior sees the world.
 type Lookup<'a> = dyn for<'b> FnMut(&'b Call) -> Result<Outcome, ExperimentalReplayError> + 'a;
 
+/// The experiment-local live fallback boundary: the only path by which a
+/// replay in this experiment could consult live state. The callback owns
+/// the instrumentation side effect — every invocation is pushed to the
+/// driver-owned invocation log — and returns a distinguishable live value,
+/// so it is a *real* alternative path that could let a candidate continue
+/// past an evidence gap. The replay mechanisms under test hold this
+/// callback but deliberately refuse to invoke it; the driver asserts on
+/// the invocation log after each replay, so "no live fallback was used"
+/// is externally observable rather than self-reported.
+type LiveFallback<'a> = dyn for<'b> FnMut(&'b Call) -> Outcome + 'a;
+
+/// Build the instrumented live fallback callback: each invocation is
+/// logged into the driver-owned `live_calls` and a distinguishable live
+/// value is returned. The replay receives only this callback — never the
+/// `live_calls` log directly — so it cannot affect the evidence.
+fn make_live_fallback<'a>(live_calls: &'a mut Vec<Call>) -> Box<LiveFallback<'a>> {
+    Box::new(move |call: &Call| {
+        live_calls.push(*call);
+        Outcome::Value("LIVE")
+    }) as Box<LiveFallback<'a>>
+}
+
 /// Identity-aware experimental replay.
 ///
 /// Each candidate call is resolved by its exact recorded interaction
 /// identity (operation + argument): the first not-yet-consumed record
 /// with that identity supplies the historical outcome.
 ///
-/// `consumed_log` and `live_log` are owned by the experiment's driver,
-/// outside the replay action itself: a replay that consumes a record must
-/// log the record's index in `consumed_log`, and a replay that consulted
-/// live state would have to log the call in `live_log`. The driver asserts
-/// on these logs afterwards, so the claims "this record was not consumed"
-/// and "live state was not consulted" are externally observable rather
-/// than self-reported. This experiment does not claim this is any final
-/// matching algorithm.
+/// `consumed_log` is owned by the driver; a replay that consumes a record
+/// logs the record's index there, so "record i was not consumed" is
+/// externally observable. `live_fallback` is the *only* path to live
+/// state (see `LiveFallback`): the replay holds it, but the replay regime
+/// under test is restricted to recorded historical evidence, so on a
+/// missing outcome it reports the gap explicitly instead of invoking the
+/// fallback. This experiment does not claim this is any final matching
+/// algorithm.
 fn identity_replay<'a>(
     record: &'a [RecordedInteraction],
     consumed_log: &'a mut Vec<usize>,
-    live_log: &'a mut Vec<Call>,
+    live_fallback: &'a mut LiveFallback<'a>,
 ) -> Box<Lookup<'a>> {
     Box::new(move |call: &Call| {
         let index = record
@@ -115,10 +138,11 @@ fn identity_replay<'a>(
                 Ok(record[index].outcome.clone())
             }
             None => {
-                // The gap is reported explicitly: no live lookup, no
-                // default value, no substitution of a different
-                // historical interaction.
-                let _ = &live_log; // the boundary exists; it is never written
+                // The fallback boundary is in hand (it is the only route
+                // to live state), but deliberately not invoked: no live
+                // lookup, no default value, no substitution of a
+                // different historical interaction.
+                let _ = live_fallback;
                 Err(ExperimentalReplayError::MissingHistoricalEvidence(
                     call.describe(),
                 ))
@@ -131,17 +155,20 @@ fn identity_replay<'a>(
 ///
 /// Candidate call i must equal historical record i exactly; the first
 /// divergence fails explicitly. Like identity replay, consumption is
-/// logged to `consumed_log` and any live consultation would have to be
-/// logged to `live_log`, both owned by the experiment's driver.
+/// logged to the driver-owned `consumed_log`, and the only path to live
+/// state is the `live_fallback` callback, which is held but never
+/// invoked.
 fn positional_replay<'a>(
     record: &'a [RecordedInteraction],
     consumed_log: &'a mut Vec<usize>,
-    live_log: &'a mut Vec<Call>,
+    live_fallback: &'a mut LiveFallback<'a>,
 ) -> Box<Lookup<'a>> {
     let mut position = 0usize;
     Box::new(move |call: &Call| {
         if position >= record.len() {
-            let _ = &live_log; // the boundary exists; it is never written
+            // Beyond the historical trajectory: the fallback boundary is
+            // in hand but deliberately not invoked.
+            let _ = live_fallback;
             return Err(ExperimentalReplayError::MissingHistoricalEvidence(
                 call.describe(),
             ));
@@ -250,19 +277,39 @@ fn main() {
         "record is the two historical read interactions in order"
     );
 
+    // The instrumented live fallback is a real, working alternative
+    // path: a driver-side probe invocation (outside any replay) is
+    // logged and returns the distinguishable live value. If a replay ever
+    // used the fallback, its invocation log would grow.
+    let mut probe_calls = Vec::new();
+    let mut probe = make_live_fallback(&mut probe_calls);
+    let probed = probe(&left);
+    drop(probe); // release the mutable borrow of `probe_calls`
+    assert!(
+        probed == Outcome::Value("LIVE") && probe_calls == vec![left],
+        "the live fallback callback must log its invocation and return a live value"
+    );
+    println!(
+        "  instrumentation: live fallback callback logs each invocation and \
+         returns Value(\"LIVE\"); every replay holds the callback but must never \
+         invoke it"
+    );
+
     // ------------------------------------------------------------------
     // F1 (control): the historical baseline replayed from the record.
     // ------------------------------------------------------------------
     let mut consumed = Vec::new();
-    let mut live_probe = Vec::new();
-    let mut replay = identity_replay(&record, &mut consumed, &mut live_probe);
+    let mut live_calls = Vec::new();
+    let mut live_fallback = make_live_fallback(&mut live_calls);
+    let mut replay = identity_replay(&record, &mut consumed, &mut live_fallback);
     let f1_result = run(&["left", "right"], &mut replay);
-    drop(replay); // release the mutable borrows of `consumed`/`live_probe`
+    drop(replay); // release the mutable borrows of `consumed`/`live_fallback`
+    drop(live_fallback); // release the mutable borrow of `live_calls`
     let f1 =
-        f1_result == Ok(history_output.clone()) && consumed == vec![0, 1] && live_probe.is_empty();
+        f1_result == Ok(history_output.clone()) && consumed == vec![0, 1] && live_calls.is_empty();
     println!(
         "  control: read(\"left\") -> L, read(\"right\") -> R, output \"L|R\"; \
-         no live consultation"
+         live fallback never invoked"
     );
     report("F1", f1);
 
@@ -270,18 +317,20 @@ fn main() {
     // Candidate A — subset divergence: read("left") only.
     // ------------------------------------------------------------------
     let mut consumed = Vec::new();
-    let mut live_probe = Vec::new();
-    let mut replay = identity_replay(&record, &mut consumed, &mut live_probe);
+    let mut live_calls = Vec::new();
+    let mut live_fallback = make_live_fallback(&mut live_calls);
+    let mut replay = identity_replay(&record, &mut consumed, &mut live_fallback);
     let subset_result = run(&["left"], &mut replay);
-    drop(replay); // release the mutable borrows of `consumed`/`live_probe`
-    let s1 = subset_result == Ok("L".to_string()) && live_probe.is_empty();
+    drop(replay); // release the mutable borrows of `consumed`/`live_fallback`
+    drop(live_fallback); // release the mutable borrow of `live_calls`
+    let s1 = subset_result == Ok("L".to_string()) && live_calls.is_empty();
     // The unused historical interaction must not invalidate the replay and
     // must not be force-consumed or force-executed. `consumed` is owned by
     // this driver, so "read(\"right\") was not consumed" is observable.
-    let s2 = consumed == vec![0] && !consumed.contains(&1) && live_probe.is_empty();
+    let s2 = consumed == vec![0] && !consumed.contains(&1) && live_calls.is_empty();
     println!(
         "  candidate A: read(\"left\") -> L, output \"L\"; unused historical \
-         interaction read(\"right\") remains unconsumed"
+         interaction read(\"right\") remains unconsumed; live fallback never invoked"
     );
     report("S1", s1);
     report("S2", s2);
@@ -291,26 +340,30 @@ fn main() {
     // ------------------------------------------------------------------
     // Condition B1: identity-aware experimental replay.
     let mut consumed = Vec::new();
-    let mut live_probe = Vec::new();
-    let mut replay = identity_replay(&record, &mut consumed, &mut live_probe);
+    let mut live_calls = Vec::new();
+    let mut live_fallback = make_live_fallback(&mut live_calls);
+    let mut replay = identity_replay(&record, &mut consumed, &mut live_fallback);
     let reorder_result = run(&["right", "left"], &mut replay);
-    drop(replay); // release the mutable borrows of `consumed`/`live_probe`
+    drop(replay); // release the mutable borrows of `consumed`/`live_fallback`
+    drop(live_fallback); // release the mutable borrow of `live_calls`
     let r1 = reorder_result == Ok("R|L".to_string())
         && consumed.len() == 2
         && consumed.contains(&0)
         && consumed.contains(&1)
-        && live_probe.is_empty();
+        && live_calls.is_empty();
     println!(
         "  candidate B (identity-aware): read(\"right\") -> R, read(\"left\") -> L, \
-         output \"R|L\""
+         output \"R|L\"; live fallback never invoked"
     );
 
     // Condition B2: strict positional negative control.
     let mut consumed = Vec::new();
-    let mut live_probe = Vec::new();
-    let mut replay = positional_replay(&record, &mut consumed, &mut live_probe);
+    let mut live_calls = Vec::new();
+    let mut live_fallback = make_live_fallback(&mut live_calls);
+    let mut replay = positional_replay(&record, &mut consumed, &mut live_fallback);
     let positional_result = run(&["right", "left"], &mut replay);
-    drop(replay); // release the mutable borrows of `consumed`/`live_probe`
+    drop(replay); // release the mutable borrows of `consumed`/`live_fallback`
+    drop(live_fallback); // release the mutable borrow of `live_calls`
     let r2 = matches!(
         &positional_result,
         Err(ExperimentalReplayError::PositionalMismatch {
@@ -319,7 +372,7 @@ fn main() {
             actual,
         }) if *position == 0 && expected == "read(\"left\")" && actual == "read(\"right\")"
     ) && consumed.is_empty()
-        && live_probe.is_empty()
+        && live_calls.is_empty()
         && r1;
     println!(
         "  candidate B (strict positional): mismatch at position 0 — expected \
@@ -334,23 +387,26 @@ fn main() {
     // read("novel"), where the history contains no read("novel").
     // ------------------------------------------------------------------
     let mut consumed = Vec::new();
-    let mut live_probe = Vec::new();
-    let mut replay = identity_replay(&record, &mut consumed, &mut live_probe);
+    let mut live_calls = Vec::new();
+    let mut live_fallback = make_live_fallback(&mut live_calls);
+    let mut replay = identity_replay(&record, &mut consumed, &mut live_fallback);
     let novel_result = run(&["left", "novel"], &mut replay);
-    drop(replay); // release the mutable borrows of `consumed`/`live_probe`
+    drop(replay); // release the mutable borrows of `consumed`/`live_fallback`
+    drop(live_fallback); // release the mutable borrow of `live_calls`
     let n1 = matches!(
         &novel_result,
         Err(ExperimentalReplayError::MissingHistoricalEvidence(missing))
             if missing == "read(\"novel\")"
     );
-    // No fallback: the only consumption is the covered read("left") — the
-    // historical read("right") was not substituted in — and no live lookup
-    // occurred. The failed run also fabricates nothing: it is an Err, not a
-    // value.
-    let n2 = consumed == vec![0] && !consumed.contains(&1) && live_probe.is_empty();
+    // The evidence gap has no fallback, from three external observations:
+    // the only consumption is the covered read("left") (the historical
+    // read("right") was not substituted in); the instrumented live
+    // fallback callback was never invoked; and the run is an Err, not a
+    // fabricated value.
+    let n2 = consumed == vec![0] && !consumed.contains(&1) && live_calls.is_empty();
     println!(
         "  candidate C: read(\"left\") -> L, then read(\"novel\") -> \
-         MissingHistoricalEvidence(read(\"novel\")); no live lookup, no \
+         MissingHistoricalEvidence(read(\"novel\")); live fallback never invoked, no \
          substitution of read(\"right\"), no fabricated value"
     );
     report("N1", n1);
