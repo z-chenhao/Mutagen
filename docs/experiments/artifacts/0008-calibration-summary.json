@@ -1,0 +1,300 @@
+{
+  "experiment_id": "0008",
+  "phase": "calibration",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "temperature": 0.2,
+  "code_under_test_commit": "482522886db9df5133e268ce3b71b7d08e7a69e0",
+  "prompt_hash": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "task_registry_sha256": "e3adfa5ddef4f0c22e2225df54659553b8e0499a76af6e8cbeceac2a6f40c709",
+  "stress_registry_sha256": "fe6a52700b30a5f951e93be20dd8b29156a584a4d3b4a0e42c3e7019b99ba047",
+  "episodes_expected": 75,
+  "episodes_total": 75,
+  "artifacts_complete": true,
+  "oracle_successes": 26,
+  "agent_failures": 12,
+  "infrastructure_failures": 0,
+  "infrastructure_failure_rate": 0.0,
+  "agent_failure_breakdown": {
+    "no_final_answer": 1,
+    "parallel_tool_calls_unsupported": 1,
+    "turn_limit": 10
+  },
+  "infrastructure_failure_breakdown": {},
+  "per_family": [
+    {
+      "family": "direct_set",
+      "calibration_task": "C1",
+      "s0_success": 5,
+      "s1_success": 3,
+      "s2_success": 3,
+      "s3_success": 0,
+      "s4_success": 0,
+      "s0_sanity_pass": true,
+      "status": "calibrated",
+      "selected_stress": "S1",
+      "selection_reason": "selected S1: 3 / 5 baseline success (min |rate - 0.5|, lower stress on ties; band = 2 or 3 of 5)"
+    },
+    {
+      "family": "conditional_set",
+      "calibration_task": "C2",
+      "s0_success": 5,
+      "s1_success": 0,
+      "s2_success": 0,
+      "s3_success": 0,
+      "s4_success": 0,
+      "s0_sanity_pass": true,
+      "status": "uncalibrated",
+      "selected_stress": null,
+      "selection_reason": "no_stress_level_in_headroom_band: S1..S4 baseline success counts = [0, 0, 0, 0] (selectable band: 2 or 3 of 5)"
+    },
+    {
+      "family": "replacement",
+      "calibration_task": "C3",
+      "s0_success": 5,
+      "s1_success": 3,
+      "s2_success": 2,
+      "s3_success": 0,
+      "s4_success": 0,
+      "s0_sanity_pass": true,
+      "status": "calibrated",
+      "selected_stress": "S1",
+      "selection_reason": "selected S1: 3 / 5 baseline success (min |rate - 0.5|, lower stress on ties; band = 2 or 3 of 5)"
+    }
+  ],
+  "calibrated_family_count": 2,
+  "proceed_to_evaluation": true,
+  "cache_overall": {
+    "nominal_prompt_tokens": 270250,
+    "cached_prompt_tokens": 255968,
+    "uncached_prompt_tokens": 14282,
+    "cache_hit_ratio": 0.9471526364477336
+  },
+  "stress_position_cache_audit": [
+    {
+      "stress_level": "S0",
+      "execution_position": 1,
+      "episodes": 3,
+      "nominal_prompt_tokens": 6312,
+      "cached_prompt_tokens": 4736,
+      "uncached_prompt_tokens": 1576,
+      "cache_hit_ratio": 0.7503168567807351
+    },
+    {
+      "stress_level": "S0",
+      "execution_position": 2,
+      "episodes": 3,
+      "nominal_prompt_tokens": 5662,
+      "cached_prompt_tokens": 5536,
+      "uncached_prompt_tokens": 126,
+      "cache_hit_ratio": 0.9777463793712469
+    },
+    {
+      "stress_level": "S0",
+      "execution_position": 3,
+      "episodes": 3,
+      "nominal_prompt_tokens": 5662,
+      "cached_prompt_tokens": 5536,
+      "uncached_prompt_tokens": 126,
+      "cache_hit_ratio": 0.9777463793712469
+    },
+    {
+      "stress_level": "S0",
+      "execution_position": 4,
+      "episodes": 3,
+      "nominal_prompt_tokens": 5049,
+      "cached_prompt_tokens": 4928,
+      "uncached_prompt_tokens": 121,
+      "cache_hit_ratio": 0.9760348583877996
+    },
+    {
+      "stress_level": "S0",
+      "execution_position": 5,
+      "episodes": 3,
+      "nominal_prompt_tokens": 5662,
+      "cached_prompt_tokens": 5472,
+      "uncached_prompt_tokens": 190,
+      "cache_hit_ratio": 0.9664429530201343
+    },
+    {
+      "stress_level": "S1",
+      "execution_position": 1,
+      "episodes": 3,
+      "nominal_prompt_tokens": 6569,
+      "cached_prompt_tokens": 6400,
+      "uncached_prompt_tokens": 169,
+      "cache_hit_ratio": 0.9742731009286041
+    },
+    {
+      "stress_level": "S1",
+      "execution_position": 2,
+      "episodes": 3,
+      "nominal_prompt_tokens": 8632,
+      "cached_prompt_tokens": 8032,
+      "uncached_prompt_tokens": 600,
+      "cache_hit_ratio": 0.9304911955514366
+    },
+    {
+      "stress_level": "S1",
+      "execution_position": 3,
+      "episodes": 3,
+      "nominal_prompt_tokens": 4382,
+      "cached_prompt_tokens": 4288,
+      "uncached_prompt_tokens": 94,
+      "cache_hit_ratio": 0.9785486079415792
+    },
+    {
+      "stress_level": "S1",
+      "execution_position": 4,
+      "episodes": 3,
+      "nominal_prompt_tokens": 6445,
+      "cached_prompt_tokens": 6304,
+      "uncached_prompt_tokens": 141,
+      "cache_hit_ratio": 0.978122575640031
+    },
+    {
+      "stress_level": "S1",
+      "execution_position": 5,
+      "episodes": 3,
+      "nominal_prompt_tokens": 8666,
+      "cached_prompt_tokens": 8224,
+      "uncached_prompt_tokens": 442,
+      "cache_hit_ratio": 0.9489960766212786
+    },
+    {
+      "stress_level": "S2",
+      "execution_position": 1,
+      "episodes": 3,
+      "nominal_prompt_tokens": 16142,
+      "cached_prompt_tokens": 15392,
+      "uncached_prompt_tokens": 750,
+      "cache_hit_ratio": 0.9535373559658035
+    },
+    {
+      "stress_level": "S2",
+      "execution_position": 2,
+      "episodes": 3,
+      "nominal_prompt_tokens": 16383,
+      "cached_prompt_tokens": 15200,
+      "uncached_prompt_tokens": 1183,
+      "cache_hit_ratio": 0.9277910028688274
+    },
+    {
+      "stress_level": "S2",
+      "execution_position": 3,
+      "episodes": 3,
+      "nominal_prompt_tokens": 11315,
+      "cached_prompt_tokens": 10592,
+      "uncached_prompt_tokens": 723,
+      "cache_hit_ratio": 0.93610251878038
+    },
+    {
+      "stress_level": "S2",
+      "execution_position": 4,
+      "episodes": 3,
+      "nominal_prompt_tokens": 20111,
+      "cached_prompt_tokens": 19328,
+      "uncached_prompt_tokens": 783,
+      "cache_hit_ratio": 0.9610660832380289
+    },
+    {
+      "stress_level": "S2",
+      "execution_position": 5,
+      "episodes": 3,
+      "nominal_prompt_tokens": 13041,
+      "cached_prompt_tokens": 12352,
+      "uncached_prompt_tokens": 689,
+      "cache_hit_ratio": 0.9471666283260486
+    },
+    {
+      "stress_level": "S3",
+      "execution_position": 1,
+      "episodes": 3,
+      "nominal_prompt_tokens": 12482,
+      "cached_prompt_tokens": 12096,
+      "uncached_prompt_tokens": 386,
+      "cache_hit_ratio": 0.9690754686748918
+    },
+    {
+      "stress_level": "S3",
+      "execution_position": 2,
+      "episodes": 3,
+      "nominal_prompt_tokens": 4382,
+      "cached_prompt_tokens": 4288,
+      "uncached_prompt_tokens": 94,
+      "cache_hit_ratio": 0.9785486079415792
+    },
+    {
+      "stress_level": "S3",
+      "execution_position": 3,
+      "episodes": 3,
+      "nominal_prompt_tokens": 4382,
+      "cached_prompt_tokens": 4288,
+      "uncached_prompt_tokens": 94,
+      "cache_hit_ratio": 0.9785486079415792
+    },
+    {
+      "stress_level": "S3",
+      "execution_position": 4,
+      "episodes": 3,
+      "nominal_prompt_tokens": 21177,
+      "cached_prompt_tokens": 19936,
+      "uncached_prompt_tokens": 1241,
+      "cache_hit_ratio": 0.9413986872550408
+    },
+    {
+      "stress_level": "S3",
+      "execution_position": 5,
+      "episodes": 3,
+      "nominal_prompt_tokens": 12512,
+      "cached_prompt_tokens": 11872,
+      "uncached_prompt_tokens": 640,
+      "cache_hit_ratio": 0.948849104859335
+    },
+    {
+      "stress_level": "S4",
+      "execution_position": 1,
+      "episodes": 3,
+      "nominal_prompt_tokens": 12467,
+      "cached_prompt_tokens": 11840,
+      "uncached_prompt_tokens": 627,
+      "cache_hit_ratio": 0.9497072270794898
+    },
+    {
+      "stress_level": "S4",
+      "execution_position": 2,
+      "episodes": 3,
+      "nominal_prompt_tokens": 12497,
+      "cached_prompt_tokens": 12064,
+      "uncached_prompt_tokens": 433,
+      "cache_hit_ratio": 0.965351684404257
+    },
+    {
+      "stress_level": "S4",
+      "execution_position": 3,
+      "episodes": 3,
+      "nominal_prompt_tokens": 18111,
+      "cached_prompt_tokens": 16800,
+      "uncached_prompt_tokens": 1311,
+      "cache_hit_ratio": 0.927613052840815
+    },
+    {
+      "stress_level": "S4",
+      "execution_position": 4,
+      "episodes": 3,
+      "nominal_prompt_tokens": 11831,
+      "cached_prompt_tokens": 11072,
+      "uncached_prompt_tokens": 759,
+      "cache_hit_ratio": 0.935846504944637
+    },
+    {
+      "stress_level": "S4",
+      "execution_position": 5,
+      "episodes": 3,
+      "nominal_prompt_tokens": 20376,
+      "cached_prompt_tokens": 19392,
+      "uncached_prompt_tokens": 984,
+      "cache_hit_ratio": 0.9517078916372202
+    }
+  ]
+}
