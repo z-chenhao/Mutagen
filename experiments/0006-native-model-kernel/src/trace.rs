@@ -277,13 +277,17 @@ fn state_relations(calls: &[CallRef], key: StateKey) -> Option<(bool, bool)> {
     let mut read_before_write = false;
     for c in calls.iter().filter(|c| c.key == Some(key)) {
         if c.tool == "state_write" {
+            // A write after an earlier read of the same key establishes
+            // read-before-write.
             if reads > 0 {
-                write_before_read = true;
+                read_before_write = true;
             }
             writes += 1;
         } else {
+            // A read after an earlier write of the same key establishes
+            // write-before-read.
             if writes > 0 {
-                read_before_write = true;
+                write_before_read = true;
             }
             reads += 1;
         }
@@ -947,41 +951,79 @@ const COUNTERBALANCE: [&str; 6] = [
     "candidate",
 ];
 
-/// Strict factorial completeness of the registered design (audit §30):
-/// every (task, condition, repetition) cell occurs exactly once, the
-/// registered task suite is present in full with its registered names,
-/// and no cell is duplicated. The repetition count R is taken from the
-/// artifacts; cells are checked against all R repetitions.
+/// Registered design size. These are fixed constants of the registered
+/// Experiment 0006 protocol — they are NEVER inferred from the artifact
+/// (a complete 2-repetition / 24-record matrix must fail, not pass).
+pub const EXPECTED_REPETITIONS: u32 = 3;
+pub const EXPECTED_CONDITIONS: [&str; 2] = ["baseline", "candidate"];
+pub const EXPECTED_EPISODES: usize = 36;
+
+/// The registered matrix must be exactly 6 tasks x 2 conditions x 3 reps.
+const _: () = assert!(
+    EXPECTED_EPISODES
+        == CANONICAL_TASKS.len() * EXPECTED_CONDITIONS.len() * EXPECTED_REPETITIONS as usize
+);
+
+/// Strict factorial completeness of the registered design.
+///
+/// FAILS unless the artifact is exactly the registered matrix: 36
+/// records; `task_id` in T1..T6 with its registered name; `condition`
+/// in {baseline, candidate}; `repetition` in 1..3; every
+/// (task, condition, repetition) tuple exactly once; 18/18 condition
+/// balance; 6 records per task; 3 records per task-condition. Nothing
+/// is derived from the file.
 pub fn check_factorial_completeness(records: &[EpisodeRecord]) -> (bool, String) {
-    let max_rep = records.iter().map(|r| r.repetition).max().unwrap_or(0);
-    if max_rep == 0 {
-        return (false, "no records".into());
+    if records.len() != EXPECTED_EPISODES {
+        return (
+            false,
+            format!(
+                "{} records; the registered 0006 design requires exactly {} (6 tasks x 2 conditions x {} repetitions)",
+                records.len(),
+                EXPECTED_EPISODES,
+                EXPECTED_REPETITIONS
+            ),
+        );
     }
 
-    // The registered task suite, in full.
-    let present: BTreeMap<&str, &str> = records
-        .iter()
-        .map(|r| (r.task_id.as_str(), r.task_name.as_str()))
-        .collect();
-    for (id, name) in CANONICAL_TASKS {
-        match present.get(id) {
-            None => return (false, format!("task {id} missing")),
-            Some(n) if *n != name => {
+    // Registered value domains, record by record.
+    for r in records {
+        match CANONICAL_TASKS.iter().find(|(id, _)| *id == r.task_id) {
+            None => {
                 return (
                     false,
-                    format!("task {id} has unregistered name {n:?} (expected {name:?})"),
+                    format!("{}: unregistered task id {}", r.run_id, r.task_id),
                 );
             }
-            _ => {}
+            Some((_, name)) => {
+                if *name != r.task_name {
+                    return (
+                        false,
+                        format!(
+                            "{}: task {} has unregistered name {:?} (expected {:?})",
+                            r.run_id, r.task_id, r.task_name, name
+                        ),
+                    );
+                }
+            }
         }
-    }
-    for id in present.keys() {
-        if !CANONICAL_TASKS.iter().any(|(c, _)| *c == *id) {
-            return (false, format!("unregistered task id {id} present"));
+        if !EXPECTED_CONDITIONS.contains(&r.condition.as_str()) {
+            return (
+                false,
+                format!("{}: unexpected condition {:?}", r.run_id, r.condition),
+            );
+        }
+        if !(1..=EXPECTED_REPETITIONS).contains(&r.repetition) {
+            return (
+                false,
+                format!(
+                    "{}: repetition {} outside the registered 1..={}",
+                    r.run_id, r.repetition, EXPECTED_REPETITIONS
+                ),
+            );
         }
     }
 
-    // Every cell exactly once.
+    // Every registered tuple exactly once.
     let mut cells: BTreeMap<String, usize> = BTreeMap::new();
     for r in records {
         *cells
@@ -996,13 +1038,17 @@ pub fn check_factorial_completeness(records: &[EpisodeRecord]) -> (bool, String)
     if !duplicated.is_empty() {
         return (
             false,
-            format!("duplicated cells: {}", duplicated.join(", ")),
+            format!(
+                "{} duplicated tuple(s): {}",
+                duplicated.len(),
+                duplicated.join(", ")
+            ),
         );
     }
     let mut missing = Vec::new();
     for (id, _) in CANONICAL_TASKS {
-        for condition in ["baseline", "candidate"] {
-            for rep in 1..=max_rep {
+        for condition in EXPECTED_CONDITIONS {
+            for rep in 1..=EXPECTED_REPETITIONS {
                 let cell = format!("{id}|{condition}|{rep}");
                 if !cells.contains_key(&cell) {
                     missing.push(cell);
@@ -1013,32 +1059,72 @@ pub fn check_factorial_completeness(records: &[EpisodeRecord]) -> (bool, String)
     if !missing.is_empty() {
         return (
             false,
-            format!("{} missing cells: {}", missing.len(), missing.join(", ")),
+            format!("{} missing tuple(s): {}", missing.len(), missing.join(", ")),
         );
+    }
+
+    // Exact balance: 18/18 conditions, 6 per task, 3 per task-condition.
+    let expected_half = EXPECTED_EPISODES / EXPECTED_CONDITIONS.len();
+    let baseline = records
+        .iter()
+        .filter(|r| r.condition == EXPECTED_CONDITIONS[0])
+        .count();
+    let candidate = records
+        .iter()
+        .filter(|r| r.condition == EXPECTED_CONDITIONS[1])
+        .count();
+    if baseline != expected_half || candidate != expected_half {
+        return (
+            false,
+            format!("condition balance {baseline}/{candidate} != {expected_half}/{expected_half}"),
+        );
+    }
+    let expected_per_task = EXPECTED_EPISODES / CANONICAL_TASKS.len();
+    for (id, _) in CANONICAL_TASKS {
+        let n = records.iter().filter(|r| r.task_id == *id).count();
+        if n != expected_per_task {
+            return (
+                false,
+                format!("task {id}: {n} records, expected {expected_per_task}"),
+            );
+        }
+        for condition in EXPECTED_CONDITIONS {
+            let n = records
+                .iter()
+                .filter(|r| r.task_id == *id && r.condition == condition)
+                .count();
+            if n != EXPECTED_REPETITIONS as usize {
+                return (
+                    false,
+                    format!("task {id} {condition}: {n} records, expected {EXPECTED_REPETITIONS}"),
+                );
+            }
+        }
     }
     (
         true,
         format!(
-            "{} records = 6 tasks x 2 conditions x {} reps; all cells exactly once",
-            records.len(),
-            max_rep
+            "{} records = 6 tasks x 2 conditions x {} repetitions; every registered tuple exactly once; balance {expected_half}/{expected_half}, {expected_per_task} per task, {} per task-condition",
+            EXPECTED_EPISODES, EXPECTED_REPETITIONS, EXPECTED_REPETITIONS
         ),
     )
 }
 
-/// Registered counterbalance and episode ordering (audit §25, §30).
+/// Registered counterbalance and episode ordering.
 ///
-/// Enforced only for the registered 36-run design: per task, the six
-/// runs appear in file order baseline, candidate, candidate, baseline,
-/// baseline, candidate; task blocks appear in canonical suite order;
-/// all run ids share one timestamp prefix; and episode indices are
-/// 1..N strictly increasing in file order.
+/// The registered 0006 design is exactly 36 runs, so a different record
+/// count FAILS this check (it cannot hold the registered file order).
+/// For the registered size it verifies: per-task counterbalance (file
+/// order baseline, candidate, candidate, baseline, baseline, candidate);
+/// task blocks in canonical suite order; repetition sequence 1,1,2,2,3,3;
+/// one shared run-id timestamp prefix; episode indices 1..36 in file
+/// order; and task-index consistency in the run ids.
 pub fn check_registered_run_order(records: &[EpisodeRecord]) -> (bool, String) {
-    if records.len() != (CANONICAL_TASKS.len() * 2 * 3) {
+    if records.len() != EXPECTED_EPISODES {
         return (
-            true,
+            false,
             format!(
-                "{} records: not the registered 36-run design; counterbalance and ordering not applicable",
+                "{} records; the registered 0006 design is exactly {EXPECTED_EPISODES} runs, so the registered run order cannot hold",
                 records.len()
             ),
         );
@@ -1755,6 +1841,50 @@ mod tests {
         assert!(!trajectory_tags(&b, &c).contains(&TrajectoryTag::StateEffectOrderChange));
     }
 
+    // --- write/read relation semantics (names must match the logic) ------
+
+    fn key_relation(key: &str, ops: &[&str]) -> Option<(bool, bool)> {
+        let calls = ops
+            .iter()
+            .enumerate()
+            .map(|(i, op)| match *op {
+                "W" => call(i, i + 1, "state_write", key, Some("A")),
+                "R" => call(i, i + 1, "state_read", key, None),
+                _ => panic!("test op must be W or R"),
+            })
+            .map(|c| CallRef::from_record(&c))
+            .collect::<Vec<_>>();
+        state_relations(&calls, StateKey::parse(key).unwrap())
+    }
+
+    #[test]
+    fn state_relation_write_then_read() {
+        // W then R: a write earlier than a later read; no read before it.
+        assert_eq!(key_relation("x", &["W", "R"]), Some((true, false)));
+    }
+
+    #[test]
+    fn state_relation_read_then_write() {
+        // R then W: a read earlier than a later write; no write before it.
+        assert_eq!(key_relation("x", &["R", "W"]), Some((false, true)));
+    }
+
+    #[test]
+    fn state_relation_read_write_read() {
+        // R, W, R: both orders exist.
+        assert_eq!(key_relation("x", &["R", "W", "R"]), Some((true, true)));
+    }
+
+    #[test]
+    fn state_relation_write_only_is_none() {
+        assert_eq!(key_relation("x", &["W"]), None);
+    }
+
+    #[test]
+    fn state_relation_read_only_is_none() {
+        assert_eq!(key_relation("x", &["R"]), None);
+    }
+
     // --- verification metric ---------------------------------------------------
 
     #[test]
@@ -1963,104 +2093,9 @@ mod tests {
 
     #[test]
     fn summary_recompute_is_idempotent_for_verifier() {
-        let recs = vec![
-            record(
-                "x1",
-                "T3",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-            record(
-                "x2",
-                "T3",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-            record(
-                "x3",
-                "T1",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x4",
-                "T1",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x5",
-                "T2",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x6",
-                "T2",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x7",
-                "T4",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x8",
-                "T4",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_read", "x", None)],
-            ),
-            record(
-                "x9",
-                "T5",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-            record(
-                "x10",
-                "T5",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-            record(
-                "x11",
-                "T6",
-                "baseline",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-            record(
-                "x12",
-                "T6",
-                "candidate",
-                1,
-                true,
-                vec![call(0, 1, "state_write", "x", Some("A"))],
-            ),
-        ];
+        // The full registered 36-record design: summary recomputation
+        // must be idempotent and the verifier must accept it.
+        let recs = factorial_fixture();
         let s1 = compute_summary(&recs);
         let s2 = compute_summary(&recs);
         assert!(serde_json::to_value(&s1).unwrap() == serde_json::to_value(&s2).unwrap());
@@ -2197,25 +2232,71 @@ mod tests {
     }
 
     #[test]
-    fn non_registered_design_skips_run_order_but_keeps_completeness() {
-        // A 12-record rep-1 design (the registered suite, one rep each):
-        // factorial completeness applies, the 36-run order checks do not.
+    fn incomplete_24_run_matrix_fails_both_checks() {
+        // The critical regression case: a COMPLETE 6 tasks x 2 conditions
+        // x 2 repetitions matrix must FAIL both checks — the registered
+        // design is exactly 36 runs and is never inferred from the file.
         let recs: Vec<EpisodeRecord> = factorial_fixture()
             .iter()
-            .filter(|r| r.repetition == 1)
+            .filter(|r| r.repetition <= 2)
             .cloned()
             .collect();
-        assert_eq!(recs.len(), 12);
-        let s = compute_summary(&recs);
-        let v = verify_artifacts(&raw(&recs), &serde_json::to_value(&s).unwrap());
-        assert!(v.ok, "checks: {:?}", v.checks);
-        let check = v
-            .checks
-            .iter()
-            .find(|(n, _, _)| n == "registered_run_order")
-            .unwrap();
-        assert!(check.1);
-        assert!(check.2.contains("not applicable"));
+        assert_eq!(recs.len(), 24);
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "complete 24-run matrix must fail factorial: {detail}");
+        let (ok, detail) = check_registered_run_order(&recs);
+        assert!(!ok, "complete 24-run matrix must fail run order: {detail}");
+    }
+
+    #[test]
+    fn missing_record_fails_factorial_completeness() {
+        // 35 records: one registered tuple missing.
+        let mut recs = factorial_fixture();
+        recs.pop();
+        assert_eq!(recs.len(), 35);
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "35 records must fail: {detail}");
+        let (ok, detail) = check_registered_run_order(&recs);
+        assert!(!ok, "35 records must fail: {detail}");
+    }
+
+    #[test]
+    fn duplicate_replacing_missing_tuple_fails() {
+        // 36 records, but one registered tuple duplicated and another
+        // absent: the T1 rep-3 candidate run becomes a second baseline.
+        let mut recs = factorial_fixture();
+        recs[5].condition = "baseline".into();
+        recs[5].run_id = "exp0006-999-0-3-37".into();
+        assert_eq!(recs.len(), 36);
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "duplicate+missing must fail: {detail}");
+        assert!(detail.contains("duplicated"), "detail: {detail}");
+    }
+
+    #[test]
+    fn out_of_range_repetition_fails() {
+        let mut recs = factorial_fixture();
+        recs[0].repetition = 4; // outside the registered 1..3
+        recs[0].run_id = "exp0006-999-0-4-1".into();
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "repetition 4 must fail: {detail}");
+    }
+
+    #[test]
+    fn unknown_condition_fails() {
+        let mut recs = factorial_fixture();
+        recs[0].condition = "control".into();
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "unknown condition must fail: {detail}");
+    }
+
+    #[test]
+    fn unknown_task_fails() {
+        let mut recs = factorial_fixture();
+        recs[0].task_id = "T7".into();
+        recs[0].task_name = "seventh".into();
+        let (ok, detail) = check_factorial_completeness(&recs);
+        assert!(!ok, "unknown task must fail: {detail}");
     }
 
     // --- secret redaction serialization ----------------------------------------
@@ -2230,11 +2311,8 @@ mod tests {
 
     #[test]
     fn verifier_flags_reasoning_and_secret_keys() {
-        let recs: Vec<EpisodeRecord> = factorial_fixture()
-            .iter()
-            .filter(|r| r.repetition == 1)
-            .cloned()
-            .collect();
+        // The full registered design: clean artifacts pass the verifier.
+        let recs = factorial_fixture();
         let s = compute_summary(&recs);
         let sv = serde_json::to_value(&s).unwrap();
         // clean artifacts pass
