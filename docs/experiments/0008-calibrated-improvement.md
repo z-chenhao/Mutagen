@@ -1,7 +1,13 @@
 # Experiment 0008: Difficulty-Calibrated Improvement Discrimination
 
-**Status:** pre-registered design (sections below) + results (filled by
-the execution commits).
+**Status:** complete. Pre-registered design (sections below), then
+results from one real execution on `incoai/Qwen3.8-27B-Splash`.
+**Result: `inconclusive`** — the pre-registered headroom and
+informative-pair gates both failed because the calibrated difficulty did
+not transfer from calibration tasks to held-out variants (the held-out
+baseline sat at 91.7% success, i.e. the ceiling 0007 could not name).
+The two-stage pipeline, frozen manifest, verifiers, and the new gates
+all behaved exactly as pre-registered.
 
 **Crate:** `experiments/0008-calibrated-improvement/` (standalone
 workspace; not part of the production workspace; no production API).
@@ -321,72 +327,194 @@ permitted workspace changes between the calibration and final commits.*
 
 ### Calibration Integrity
 
-<!-- PLACEHOLDER: 75/75 records, cyclic order, fault audit, verifier result -->
+75/75 records executed (3 families × 5 stress levels × 5
+repetitions), in the registered cyclic stress order; 0 infrastructure
+failures; `verify-calibration` **PASSED** (all records + summary +
+manifest recomputed and deep-compared from the raw artifact).
+Oracle successes: 26/75; agent failures: 12
+(`turn_limit` / `no_final_answer` / `parallel_tool_calls_unsupported`);
+389 model requests, 324 executed tool calls.
 
 | Family | S0 | S1 | S2 | S3 | S4 | Selected | Reason |
 |---|---|---|---|---|---|---|---|
-| direct_set | — | — | — | — | — | — | — |
-| conditional_set | — | — | — | — | — | — | — |
-| replacement | — | — | — | — | — | — | — |
+| direct_set | 5/5 | 3/5 | 3/5 | 0/5 | 0/5 | **S1** | tie at \|0.6−0.5\| = \|0.4−0.5\|... see below |
+| conditional_set | 5/5 | 0/5 | 0/5 | 0/5 | 0/5 | — | nothing in the 2–3/5 band |
+| replacement | 5/5 | 3/5 | 2/5 | 0/5 | 0/5 | **S1** | 3/5 vs 2/5 equidistant from 0.5 → lower stress |
+
+(Note for `direct_set`: the eligible levels were S1 (3/5 = 0.6) and
+S2 (3/5 = 0.6); both are distance 0.1 from 0.5, so the lower-stress
+tie-break selected S1.)
 
 ### Reliable Sanity Gate
 
-<!-- PLACEHOLDER -->
+All three families passed: S0 = 5/5 ≥ 4/5 for every family. No family
+was `calibration_invalid`.
 
 ### Selected / Uncalibrated Families
 
-<!-- PLACEHOLDER -->
+- Calibrated (2/3): `direct_set` → **S1**, `replacement` → **S1**.
+- Uncalibrated (1/3): `conditional_set` — S1..S4 all 0/5; the
+  pre-registered band is 2 or 3 of 5, so no level was eligible.
+  Minimum calibrated-family gate: **passed** (2 ≥ 2).
+  `proceed_to_evaluation = true`.
+
+Interesting real-world finding: `conditional_set` (C2: "If x is EMPTY,
+set x to A") collapsed to 0/5 at *every* fault severity ≥ 1 — even the
+single dropped write of S1 defeated it completely, while the
+unconditional `direct_set` family still succeeded 3/5 at S1. The
+calibration procedure surfaced a genuinely family-specific difficulty
+structure that a one-shot fixed fault (0007) could not.
 
 ### Calibration Provenance
 
-- Calibration code-under-test commit: <!-- PLACEHOLDER -->
-- Calibration raw SHA-256: <!-- PLACEHOLDER -->
-- Selection manifest SHA-256: <!-- PLACEHOLDER -->
-- Final-evaluation execution commit: <!-- PLACEHOLDER -->
+- Calibration code-under-test commit: `482522886db9df5133e268ce3b71b7d08e7a69e0`
+- Calibration raw SHA-256: `8cadd555b3b514b52fc68609a6a823dea49479efd23415f542ed99521a0d1b5d`
+- Selection manifest SHA-256: `55b707d014ac9df5ea7aa83904809169c1d65d53d5975b106b6f83d22451d3bc`
+- Final-evaluation execution commit: `f9d3484a37d1d99c6ad0aafd4433feccbe2cd139`
+- Phase A costs (provider-reported): 389 requests; nominal prompt
+  tokens 270,250 (cached 255,968 → hit ratio 0.947); completion
+  tokens 122,229; reasoning tokens 109,253 (content not captured).
+  Stress×position cache audit: 15 rows in the summary (first
+  positions show lower hit ratios, as expected for fresh conversations).
 
 ## Phase B — Evaluation
 
 ### Evaluation Integrity
 
-<!-- PLACEHOLDER: record count vs manifest-derived expected, verifier result -->
+48/48 records executed — exactly the manifest-derived expectation
+(2 calibrated families × 2 held-out tasks × 2 conditions × 6
+repetitions); 0 infrastructure failures; the repair prompt, baseline
+prompt, task registry, and manifest hashes all matched the committed
+frozen values; `verify-evaluation` **PASSED**.
 
 ### Held-Out Baseline Headroom
 
-<!-- PLACEHOLDER: successes/failures/rate, gate PASS/FAIL -->
+| | episodes | successes | rate |
+|---|---|---|---|
+| baseline | 24 | 22 | **0.9167** |
+| candidate_repair | 24 | 24 | 1.0000 |
+
+**Gate FAILED**: 0.9167 is outside the pre-registered band
+[0.20, 0.80] — the held-out baseline is on the ceiling. This is the
+exact failure mode 0007 exhibited silently; 0008's gate names it.
 
 ### Valid Pair Count / Informative Pair Count
 
-<!-- PLACEHOLDER -->
+- Valid pairs: **24 / 24** (0 infrastructure-excluded, 0 missing) — gate passed.
+- Informative pairs (discordant oracle success): **2** — gate FAILED
+  (required ≥ 12). 22 of 24 pairs were ties (both conditions
+  succeeded).
 
 ### Repair vs Baseline
 
-<!-- PLACEHOLDER: wins / losses / ties / non-ties / exact p / classification -->
+| wins | losses | ties | non-ties | exact two-sided sign-test p | classification |
+|---|---|---|---|---|---|
+| 2 | 0 | 22 | 2 | 0.5 | `quality_inconclusive` |
 
-### Per-Family Diagnostic
+The repair candidate won both pairs it could win (the two episodes
+where baseline failed) and lost none — directionally suggestive of a
+robustness improvement, but with 2 informative pairs there is no
+statistical evidence in either direction. (Contrast with 0007: 1
+informative pair, no gates, no explanation.)
 
-<!-- PLACEHOLDER -->
+### Per-Family Diagnostic (diagnostic only — not significance basis)
+
+| Family | Selected stress | Calibration baseline rate | Held-out baseline | Repair | Wins / Losses / Ties |
+|---|---|---|---|---|---|
+| direct_set | S1 | 0.60 | 10/12 = 0.833 | 12/12 = 1.0 | 2 / 0 / 10 |
+| replacement | S1 | 0.60 | 12/12 = 1.0 | 12/12 = 1.0 | 0 / 0 / 12 |
 
 ### Difficulty Transfer
 
 | Family | Calibration Baseline Rate | Held-Out Baseline Rate | Transfer Error |
 |---|---|---|---|
-| — | — | — | — |
+| direct_set | 0.60 | 0.833 | 0.233 |
+| replacement | 0.60 | 1.000 | 0.400 |
+
+**The calibrated difficulty did not transfer.** Both families' held-out
+baseline rates moved from 0.60 (calibration) to 0.83–1.00 (held-out):
+the calibration task within each family (C1/C3) happened to be harder
+for this model than the family's held-out variants (H1/H2, H5/H6) at
+the same frozen stress. The selection rule did exactly what it was
+registered to do — it calibrated *the calibration task*. It cannot see
+held-out difficulty, and the transfer assumption failed.
 
 ### Cost / Usage & Cache Position Audit
 
-<!-- PLACEHOLDER -->
+| Condition | Episodes | Requests | Tool calls | Nominal prompt tok. | Cached tok. | Completion tok. | Reasoning tok. |
+|---|---|---|---|---|---|---|---|
+| baseline | 24 | 129 | 105 | 81,933 | 77,216 | 9,179 | 5,048 |
+| candidate_repair | 24 | 132 | 108 | 90,644 | 85,504 | 8,566 | 4,193 |
+
+Overall cache hit ratio 0.943; condition-position audit (4 rows) in the
+summary shows expected prompt-prefix caching in both positions. Usage
+was provider-reported on 100% of requests; quality was **not**
+cost-adjusted. The repair candidate here spent slightly *more* prompt
+tokens (longer verification loops where it retried) and slightly fewer
+completion tokens; this trade-off is reported, not scored.
 
 ### Failure Resource Consumption
 
-<!-- PLACEHOLDER -->
+0 agent failures and 0 infrastructure failures in Phase B — no failure
+consumption to report. (Phase A, for reference: 12 agent failures
+consumed 135 requests / 133 tool calls — the model's retry loops ran
+to the 12-turn limit on the harder stressed episodes.)
 
 ## Experiment Conclusion
 
-<!-- PLACEHOLDER: supported | refuted | inconclusive, with the exact gate(s) -->
+**`inconclusive`** — by the pre-registered rule, not by judgment:
+
+- Headroom gate FAILED (held-out baseline 0.9167 ∉ [0.20, 0.80]).
+- Informative-pair gate FAILED (2 < 12).
+- All other gates passed (Phase A complete, 2 calibrated families,
+  Phase B complete, 0% infra failures, 24 valid pairs).
+
+Interpretation:
+
+1. The **procedure** worked end-to-end exactly as pre-registered:
+   baseline-only calibration → pure selection rule → frozen, verified
+   manifest → no-tuning checks → frozen-stress held-out evaluation →
+   independent recomputation of summary and manifest → explicit
+   gate-cited conclusion. Nothing was tuned after seeing data.
+2. The **hypothesis failed on its transfer clause**: baseline-only
+   calibration found intermediate difficulty on *calibration* tasks
+   (3/5 for two families — the first clause held) but the model's
+   held-out behavior did not track its calibration behavior, so the
+   evaluator had no headroom to discriminate the improvement.
+3. The new gates converted 0007's silent ceiling effect into an
+   explicit, documented, mechanically-detected `inconclusive` with
+   named reasons — the methodology gap is closed even though this
+   particular execution could not reach a directional conclusion.
+4. The repair candidate was never harmful (0 losses) and captured both
+   recoverable pairs — suggestive, but 2 informative pairs is not
+   evidence.
+
+## Evidence We Can Claim (actual)
+
+That a baseline-only, pre-registered, difficulty-calibration pipeline
+— frozen manifest, independent verifiers, headroom and informative-pair
+gates — runs cleanly end-to-end on a real stochastic LLM and correctly
+classifies a ceiling-collapsed measurement as `inconclusive` instead of
+silently reporting a direction, on these three registered families,
+this state-manipulation environment, and this model.
+
+## Evidence We Cannot Claim (actual)
+
+Any quality conclusion about the `candidate_repair` mutation (2
+informative pairs), any claim that difficulty calibration transfers to
+unseen variants for this model, and any claim that the 0008 design will
+produce `supported`/`refuted` verdicts for other models or
+environments. The headroom-transfer failure is a property of the
+calibration-task choice, not of the gates.
 
 ## Architectural Question (documented, not answered)
 
 Has the evaluator accumulated enough evidence to support the first
-mutation → evaluation → selection experiment? If 0008 is supported,
-this becomes the natural Experiment 0009 question. **Experiment 0009 is
-not implemented by this experiment.**
+mutation → evaluation → selection experiment? **Not yet** for the
+improvement direction on this model: the bottleneck is now precisely
+diagnosed — *measurement information* (difficulty transfer / headroom),
+not statistics or plumbing. A future Experiment 0009 must be a new
+pre-registration: e.g. harder base tasks (multi-key writes, chained
+dependencies), a deeper fault ladder, or a second calibration task per
+family used to validate transfer *before* freezing — each is a distinct
+hypothesis, none is implemented here, and 0008's design is closed.
