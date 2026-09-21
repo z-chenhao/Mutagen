@@ -10,16 +10,19 @@
 //! evolution algorithms, no plugin system, no global state lives here —
 //! inventing those now would spend architectural freedom we need later.
 //!
-//! What *is* here consists of domain identities whose requirements are
-//! independent of any future design decision:
+//! What *is* here is the smallest type justified by an immediate
+//! requirement:
 //!
-//! - [`ComponentId`] — a stable, versioned identity for anything that may
-//!   one day be an evolvable component (prompts, tools, workflows, …).
-//!   Versioning, lineage, and rollback all presuppose such an identity.
 //! - [`EpisodeId`] — an opaque identifier for a recorded run. Replay-based
-//!   experimentation presupposes that runs are addressable.
+//!   experimentation presupposes that runs are addressable. The internal
+//!   format is deliberately opaque; how episode ids are generated and
+//!   persisted is a future implementation detail, not a domain decision.
 //!
-//! Both types are dependency-free, deterministic, and `Send + Sync`.
+//! Component identity, revision identity, versioning, and lineage are
+//! **intentionally undefined** in this crate until experiments establish
+//! their requirements (see `docs/evolution.md`). The type formerly
+//! occupying that space was removed for encoding a linear, monotonically
+//! numbered lineage model that no experiment has validated.
 //!
 //! ## How this API is allowed to grow
 //!
@@ -27,10 +30,8 @@
 //! concrete consumer demonstrates the need (see `docs/decisions/` and
 //! `AGENTS.md`). Evidence before abstraction.
 
-mod component;
 mod episode;
 
-pub use component::ComponentId;
 pub use episode::EpisodeId;
 
 /// Semantic version of this crate, exposed for tooling such as `mutagen doctor`.

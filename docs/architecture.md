@@ -17,9 +17,11 @@ mutagen-cli  →  mutagen-runtime  →  mutagen-core
 
 Pure, dependency-free foundational domain types:
 
-- `ComponentId` — stable, versioned identity of a logical component
-  (`name@version`), with `Display`/`FromStr` round-tripping.
 - `EpisodeId` — opaque identifier for a recorded run.
+
+Component identity, revision identity, versioning, and lineage are
+intentionally undefined in the codebase until experiments establish their
+requirements (see [`evolution.md`](evolution.md)).
 
 No I/O, no global state, no `unsafe`. The public API is intentionally
 minimal until experiments justify more (see the crate's `lib.rs`).
@@ -36,7 +38,7 @@ The `mutagen` binary with:
 
 - `mutagen --version`
 - `mutagen doctor` — deterministic local sanity checks (toolchain version,
-  core type round-trips, workspace wiring). No network, no API keys.
+  episode id round-trip, workspace wiring). No network, no API keys.
 
 Third-party dependency of the workspace: `clap` (derive) in
 `mutagen-cli`, for argument parsing. Nothing else.

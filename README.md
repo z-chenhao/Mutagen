@@ -36,7 +36,7 @@ What this repository contains *today*:
 - A Cargo workspace with a strict dependency direction:
   `mutagen-cli → mutagen-runtime → mutagen-core`
 - `mutagen-core` — a tiny, dependency-free set of foundational domain types
-  (`ComponentId`, `EpisodeId`)
+  (`EpisodeId`)
 - `mutagen-runtime` — an intentionally empty stub fixing the dependency seam
 - `mutagen-cli` — the `mutagen` binary: `--version` and `doctor`
 - Engineering infrastructure: CI, ADRs, an experiment contract, and an
@@ -79,7 +79,7 @@ cargo run -p mutagen-cli -- doctor
 ```
 
 `mutagen doctor` runs deterministic local sanity checks (toolchain version,
-core type round-trips, workspace wiring). It never touches the network and
+episode id round-trip, workspace wiring). It never touches the network and
 needs no API keys.
 
 ## Development

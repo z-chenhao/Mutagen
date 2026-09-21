@@ -31,14 +31,14 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg(test)]
 mod tests {
     use super::VERSION;
-    use mutagen_core::ComponentId;
+    use mutagen_core::EpisodeId;
 
     /// Smoke test pinning the dependency direction: the runtime layer must
     /// be able to consume core types.
     #[test]
     fn runtime_consumes_core() {
-        let id = ComponentId::new("router", 1);
-        assert_eq!(id.to_string(), "router@1");
+        let id = EpisodeId::new("smoke");
+        assert_eq!(id.as_str(), "smoke");
         assert!(!VERSION.is_empty());
     }
 }
