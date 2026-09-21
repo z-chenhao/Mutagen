@@ -53,5 +53,8 @@ touching them must be justified by experiments and recorded as new ADRs:
 
 - The Phase 0 codebase contains no evolution abstractions by design.
 - `unsafe` is workspace-forbidden until profiling evidence says otherwise.
-- CI is the enforcement mechanism for formatting, linting, tests, and the
-  dependency invariants above.
+- CI enforces formatting, linting, tests, and workspace build health. The
+  `mutagen-cli → mutagen-runtime → mutagen-core` dependency-direction
+  invariant is enforced by review for now: CI does not inspect the Cargo
+  dependency graph, and no graph validation is introduced until an actual
+  violation motivates one.
