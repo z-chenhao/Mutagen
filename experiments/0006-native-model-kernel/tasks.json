@@ -1,0 +1,34 @@
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "name": "read_x",
+      "prompt": "Report the current value of x."
+    },
+    {
+      "id": "T2",
+      "name": "read_both",
+      "prompt": "Report the current values of x and y."
+    },
+    {
+      "id": "T3",
+      "name": "write_x",
+      "prompt": "Set x to A. Report when it is done."
+    },
+    {
+      "id": "T4",
+      "name": "conditional_write",
+      "prompt": "If x is EMPTY, set x to A. Then report the resulting value of x."
+    },
+    {
+      "id": "T5",
+      "name": "unrelated_read_after_write",
+      "prompt": "Set x to A, then report the current value of y."
+    },
+    {
+      "id": "T6",
+      "name": "two_writes",
+      "prompt": "Set x to A and set y to B. Then report completion."
+    }
+  ]
+}
