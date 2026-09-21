@@ -202,10 +202,16 @@ write-containing.
 
 3 repetitions × 6 tasks × 2 conditions = **36 episodes**.
 Deterministic counterbalancing per task: rep1 baseline→candidate,
-rep2 candidate→baseline, rep3 baseline→candidate. Everything except
-the system prompt is identical between conditions (same model,
-endpoint, temperature, kernel, tool schemas, tool implementations,
-initial state, limits).
+rep2 candidate→baseline, rep3 baseline→candidate (file order per
+task block: baseline, candidate, candidate, baseline, baseline,
+candidate). Everything except the system prompt is identical between
+conditions (same model, endpoint, temperature, kernel, tool schemas,
+tool implementations, initial state, limits).
+
+The post-run audit (§ Execution protocol audit) verifies all of this
+mechanically against the committed artifact: factorial completeness,
+counterbalance order, single-run integrity, and per-record controlled
+variables are enforced checks in `verify-artifacts`, not prose.
 
 ## Eligibility
 
@@ -223,15 +229,33 @@ tags may apply: `exact`, `added_call`, `omitted_call`, `novel_call`,
 `state_effect_order_change` (the relative W/R order on a key changes).
 Canonical call identity = tool name + key-sorted JSON arguments.
 
-Implementation semantics (as executed by the code-under-test commit):
-`argument_change` fires when the multiset of canonical arguments for
-some tool name differs between the two runs, and
-`state_effect_order_change` fires when the ordered write/read pattern
-on some key differs. Both are therefore *difference* tags that also
-fire when the mutation adds a call of a tool (or a read of a key) the
-other run did not perform; they intentionally overlap with
-`added_call` / `novel_call` and are reported as independent
-observations.
+Implementation semantics (audit-fixed; see § Trajectory divergence for
+the resulting table):
+
+- `argument_change` fires when, for a tool name **present in both
+  trajectories**, the **set of distinct** canonical arguments differs
+  across runs. It is deliberately insensitive to call order and to
+  multiplicity (a count difference is the domain of
+  `added_call` / `omitted_call` / `repeated_count_change`) and a tool
+  absent from one run (0→n) is the domain of `added_call` /
+  `novel_call`. It is therefore *not* a near-duplicate of
+  `added_call`: it identifies argument-value differences of tools that
+  both runs used, independent of how many calls each used.
+- `state_effect_order_change` fires when, for a key on which **both
+  trajectories perform at least one read AND at least one write**, the
+  write/read **relation** differs: the 2-bit signature
+  (write-before-read exists, read-before-write exists), which captures
+  a genuine order inversion (W-then-R vs R-then-W) or an inserted
+  operation that inverts part of the order. Keys where one side lacks
+  reads or writes are not characterized: pure presence or multiplicity
+  changes belong to the count tags, so this tag is independent of
+  `added_call` / `repeated_count_change` for those cases.
+
+The code-under-test commit (`fdca01e`) was executed with the
+pre-audit, broader semantics (multiset-of-arguments and full W/R
+pattern comparison); the run itself is unchanged — the fixed
+semantics are applied only to the *re-derived summary* and are
+documented here alongside the as-executed values.
 
 ## Verification Metric
 
@@ -290,21 +314,35 @@ records), [`artifacts/0006-summary.json`](artifacts/0006-summary.json).
 
 ### Trajectory divergence (12 eligible pairs)
 
-| Tag | Count | Task IDs |
-| --- | --- | --- |
-| exact | 3 | T1 |
-| added_call | 9 | T3, T4, T5 |
-| argument_change | 9 | T3, T4, T5 |
-| novel_call | 6 | T3, T5 |
-| repeated_count_change | 3 | T4 |
-| state_effect_order_change | 9 | T3, T4, T5 |
-| reordered | 0 | — |
-| omitted_call | 0 | — |
+| Tag | Count (audit-fixed) | Task IDs | As-executed (pre-audit) |
+| --- | --- | --- | --- |
+| exact | 3 | T1 | 3 |
+| added_call | 9 | T3, T4, T5 | 9 |
+| argument_change | 3 | T5 | 9 (T3, T4, T5) |
+| novel_call | 6 | T3, T5 | 6 |
+| repeated_count_change | 3 | T4 | 3 |
+| state_effect_order_change | 3 | T4 | 9 (T3, T4, T5) |
+| reordered | 0 | — | 0 |
+| omitted_call | 0 | — | 0 |
+
+Per task (audit-fixed tags over the 12 eligible pairs):
+
+| Task | Pairs | Exact | Non-exact | Tags |
+| --- | --- | --- | --- | --- |
+| T1 (read_x) | 3 | 3 | 0 | `exact` |
+| T2 (read_both) | 0 | — | — | — (all 6 episodes ineligible: parallel reads) |
+| T3 (write_x) | 3 | 0 | 3 | `added_call`, `novel_call` |
+| T4 (conditional_write) | 3 | 0 | 3 | `added_call`, `repeated_count_change`, `state_effect_order_change` |
+| T5 (unrelated_read_after_write) | 3 | 0 | 3 | `added_call`, `argument_change`, `novel_call` |
+| T6 (two_writes) | 0 | — | — | — (0/3 eligible pairs; see Failed episodes) |
 
 Non-exact pairs: **9 of 12** — all three write tasks that produced
 eligible pairs (T3, T4, T5) were non-exact in all 3 of their
 repetitions each (9/9). The single read-only task with eligible pairs
-(T1) was exact in all 3.
+(T1) was exact in all 3. (Identical to the pre-audit values: the tag
+definition fix reassigns *which* tags fire, not exactness, so
+eligibility, pair counts, and the conclusion rule's inputs are
+untouched.)
 
 Canonical per-repetition trajectories (deterministic across all 3
 repetitions on every eligible episode):
@@ -323,14 +361,17 @@ answer: *“Done. `x` is now set to `A` (write succeeded and verified by
 read-back)”*). Baseline final answers never mention verification and
 perform no read-back.
 
-Note on tag semantics: `argument_change` and
-`state_effect_order_change` are implemented as *multiset/pattern
-difference* tags; they therefore also fire when the mutation adds a
-call of a tool (or a read of a key) that the baseline did not perform.
-They overlap with `added_call`/`novel_call` by construction; all tags
-are independent observations, and the non-overlapping tags
-(`added_call`, `novel_call`, `repeated_count_change`) already carry the
-same signal.
+Note on tag semantics: the table above reflects the audit-fixed
+definitions. Under them, `argument_change` and
+`state_effect_order_change` no longer co-fire merely because the
+mutation *adds* a call: `argument_change` now fires only where a tool
+present in both runs received different argument values (T5: the
+`state_read` set `{read(y)}` vs `{read(x), read(y)}`), and
+`state_effect_order_change` only where a key with reads and writes on
+both sides changed its write/read relation (T4: `read(x), write(x=A)`
+→ `read(x), write(x=A), read(x)` gains a write-before-read). The
+as-executed (pre-audit) values were 9 pairs each (T3, T4, T5) for
+both tags; the run was not re-executed, only the derivation.
 
 ### Failed episodes
 
@@ -369,11 +410,119 @@ limit hits occurred. The read-only control recorded **0** unexpected
 | Model wait time | 162.2 s |
 | Tool execution | 113 µs |
 | Kernel overhead estimate | ≈ 0 ms (labeled approximate) |
-| Tokens (36 episodes) | 52,731 prompt / 6,121 completion |
+| Tokens (36 episodes) | 52,731 prompt / 6,121 completion (93 model requests) |
 
 The kernel is an in-memory observer of a local model; the timing
 table shows the run was dominated by model inference. No benchmark
 claim is made.
+
+### Execution protocol audit (post-run)
+
+The committed artifact was re-audited read-only against the registered
+protocol; **no episode was re-executed and the raw trajectory file is
+byte-identical to the one written at run time** (SHA-256
+`09858422045041440bb66fa88b623c88bb335288ee9bfaec0dd3f14e9097a0ed`
+before and after the audit; the code-under-test commit remains
+`fdca01e`). Findings, all machine-enforced by `verify-artifacts`
+(14/14 PASS after the audit):
+
+- **Factorial completeness.** 36 records = 6 tasks × 2 conditions × 3
+  repetitions; every (task, condition, repetition) cell occurs exactly
+  once, the registered task suite (T1…T6 with registered names) is
+  present in full, and no cell is duplicated.
+  (`factorial_completeness`.)
+- **Counterbalancing.** Within every task block the six runs occur in
+  file order baseline, candidate, candidate, baseline, baseline,
+  candidate, and task blocks occur in registered suite order.
+  (`registered_run_order`.)
+- **Single execution unit.** All 36 run ids share one timestamp prefix
+  (`exp0006-1789965784-…`) and encode episode indices 1..36 strictly
+  increasing in file order: one uninterrupted sequential run, one
+  request at a time, nothing interleaved. (`registered_run_order`.)
+- **Controlled variables.** Identical across all 36 records (checked
+  per record, not per condition): model id, redacted endpoint,
+  temperature 0.2, both prompt hashes, task-suite hash, and initial
+  state `{"x": "EMPTY", "y": "B"}`. Code invariants (identical for
+  every request): one fresh in-memory `ExternalState` per episode
+  (a new `ToolExecutor` is constructed per episode), the two fixed
+  tool schemas, and the fixed limits (12 model turns / 16 tool calls).
+  The two system prompts differ by exactly one line — the registered
+  mutation (verified by text diff of the on-disk prompt files).
+- **Tool integrity.** All 57 recorded tool calls pass schema
+  re-validation with strictly increasing per-episode sequence numbers;
+  0 unknown tools, 0 invalid arguments, 0 null results. (`tool_call_validity`.)
+- **Termination.** 27 `completed` + 9 `parallel_tool_calls_unsupported`
+  = 36; zero HTTP failures, parse failures, or limit hits. The 9
+  rejections are the kernel's registered one-call-per-turn policy
+  applied to the model's parallel calls (all 9 responses carried two
+  calls; none were serialized or silently dropped — the calls are
+  absent from `tool_calls` because the kernel refused to execute
+  them, and the episode is recorded ineligible with the reason). The
+  policy is a pre-registered design choice, not a correctness bug; its
+  consequences (all of T2 and 2 of 3 T6 repetitions ineligible) drive
+  the inconclusive verdict and are a design input for 0007 — not a
+  defect to patch here.
+
+### Token & usage accounting (post-run audit)
+
+The raw artifact persists `usage = {prompt_tokens, completion_tokens,
+total_tokens}` per episode (summed over that episode's model
+requests). Aggregated:
+
+| Scope | Episodes | Model requests | Prompt tokens (nominal) | Completion tokens |
+| --- | --- | --- | --- | --- |
+| All runs | 36 | 93 | 52,731 | 6,121 |
+| Baseline | 18 | 40 | 21,502 | 2,598 |
+| Candidate | 18 | 53 | 31,229 | 3,523 |
+| Eligible only | 27 | 80 | 45,725 | 4,773 |
+
+Accounting semantics and their limits:
+
+- **Prompt tokens are nominal.** The serving stack reports the *full*
+  prompt length of each request, including any prefix it served from
+  its prefix cache; uncached prefill compute is lower by the cached
+  amount. The candidate's higher prompt total is a turn-count effect
+  (extra turns re-send a growing history: 53 vs 40 requests), not a
+  per-request prompt difference.
+- **Completion tokens include reasoning.** The provider's cached-token
+  and reasoning-token fields were present in its responses but were
+  discarded by the 0006 parser, so the reasoning share of
+  `completion_tokens` is not recoverable from this artifact. No
+  reasoning *content* appears anywhere in the artifacts.
+- **Cached-prefix and effective-uncached-prefill tokens: `null`, not
+  zero.** The regenerated summary records both as `null` with an
+  explicit note rather than inventing values.
+
+**Prompt-cache audit — status: UNKNOWN from the committed artifact.**
+The artifact cannot answer "was prompt caching active, and how much
+was reused", because the 0006 parser persisted no cache accounting.
+Read-only inspection of the serving stack (no requests sent, no
+benchmarks) establishes the surrounding facts:
+
+- The local server implements a real prefix cache and exposes it in
+  the OpenAI-compatible response as
+  `usage.prompt_tokens_details.cached_tokens` (VERIFIED in the serving
+  code and a current live response).
+- The server's own request log covers the run window. All 93 requests
+  are attributable to this run — per-episode token sums match the
+  artifact exactly, request-for-request — and they show 49,888 of
+  52,731 prompt tokens served as cache-matched: **94.6% overall;
+  94.65% baseline vs 94.58% candidate** (94.47% vs 94.48% on eligible
+  episodes). The cache was active and its utilization was
+  statistically balanced across conditions, so it did not
+  systematically favor one condition.
+
+That log is **external corroboration, not a committed artifact** (it
+is a shared server log; attribution rests on the exact token
+reconciliation above, and the long-lived process-wide cache means the
+run's first requests also benefited from a smoke test run a couple of
+minutes earlier — for both conditions alike). Per-request server-side
+TTFT from the same log (mean 0.60 s baseline vs 0.44 s candidate over
+all requests; 0.49 s vs 0.39 s on first-of-episode requests) is
+likewise an external observation, reported descriptively with no
+causal claim — per-request TTFT depends on the cache state and output
+length at that instant, which differ by construction between a
+2-turn and a 3-turn episode.
 
 ## Conclusion
 
@@ -405,6 +554,12 @@ or treated as a separate protocol feature is a genuine open question
 for future experiments; 0006's kernel chose (by pre-registration) to
 reject and record.
 
+The post-run tag-semantics audit does not touch this verdict: the
+fix reassigns which *difference* tags fire on the 12 eligible pairs
+(`argument_change` and `state_effect_order_change` narrow from 9 pairs
+each to 3) but leaves exactness, eligibility, pair counts, and the
+rule's two gates exactly as computed from the as-executed code.
+
 ## Relationship to Experiments 0002–0005
 
 Structural correspondence only — and the correspondence held on real
@@ -418,7 +573,10 @@ data:
   independent read-only fixtures; on real data `exact` / `added_call`
   / `novel_call` / `state_effect_order_change` all fired as designed,
   and `reordered` / `omitted_call` did not — the mutation adds, it
-  does not permute.
+  does not permute. The audit then tightened two of the eight
+definitions (see § Trajectory Tags) so that no tag is a
+  near-duplicate of `added_call`; the real-data table changed
+  accordingly while the behavioral conclusions did not.
 - **0004 (stateful causality)** → the W/R same-key pattern is now
   observed to *change* under a policy mutation; the verification
   metric (post-write same-key read) is 0004's causality question
@@ -450,6 +608,17 @@ data:
    even under an explicit one-call-per-turn instruction (9/36
    episodes; 6/6 on `read_both`). This is a measured property of the
    model/kernel boundary.
+6. The execution itself was protocol-clean: the committed 36-record
+   artifact is a complete, exactly-once factorial design with
+   registered counterbalancing, one execution unit, per-record
+   controlled variables, and fully schema-valid tool calls — all
+   machine-verified by `verify-artifacts` (14/14 PASS), including the
+   raw file's byte-level immutability (SHA-256) across the audit.
+7. The serving stack ran a prefix cache during the run (external log
+   corroboration: ~94.6% prompt-token reuse, balanced across
+   conditions); the committed artifact itself quantifies no cache
+   usage, and the summary says so explicitly (`null`, with a note) rather
+   than estimating.
 
 ## Evidence We Cannot Claim
 
@@ -462,6 +631,14 @@ data:
 - No general-agent generalization: one model, one endpoint, six
   trivial tasks, two tools.
 - No Rust-vs-Pi performance claim: Pi was not run.
+- No *committed-artifact* claim about prompt-cache hit rates or
+  reasoning-token shares: the 0006 parser persisted neither. The
+  server-log figures above are external corroboration (read-only
+  inspection of a shared local server), not part of the reproducible
+  artifact, and are labeled as such.
+- No claim that the one-line mutation improved anything: the
+  verification-rate movement is a measured behavioral difference, not
+  a quality judgment.
 
 ## Architectural Question Opened
 
@@ -478,6 +655,30 @@ improvement from regression?
 
 (Experiment 0007 is not implemented here.)
 
+Concrete inputs for 0007, carried over from this audit:
+
+- **Persist the full usage accounting.** The 0006 parser dropped the
+  provider's `prompt_tokens_details.cached_tokens` and
+  `completion_tokens_details.reasoning_tokens` fields; 0007 must
+  persist per-request usage (including cache and reasoning splits)
+  into the raw artifact so token claims are reproducible from the
+  artifact alone.
+- **Decide the parallel-call policy deliberately.** 0006's registered
+  reject-and-record policy cost the read-only control (T2) all of its
+  pairs (6/6 episodes ineligible) and T6 all three of its pairs (each
+  repetition failed on one side or the other), flipping the verdict to
+  inconclusive. If 0007 serializes multi-call responses instead, that
+  is a *protocol design decision to pre-register*, not a bug fix —
+  and it must be the same policy for both conditions.
+- **Record cache-state provenance.** The serving stack's process-wide
+  prefix cache makes run-time token costs dependent on what ran
+  earlier on the same server (a smoke test warmed it here). 0007
+  should either restart/identify the serving state per run or record
+  it, since "fair repeated evaluation" includes fair compute.
+- **Keep the factorial verifier.** The strict
+  completeness/counterbalance checks cost little and caught the
+  audit's entire class of risk; 0007 should inherit them.
+
 ## Execution Provenance
 
 - Code-under-test commit: `fdca01e1a21a958ceb318f44231ad60c91f141e4`
@@ -492,5 +693,17 @@ improvement from regression?
   candidate `798059e34d71aff90420ad687c5990e6707fbc48e6fb26c44dcc54bdf2b0a613`;
   task suite `4bc8852e8e2de2a2ddb2eab3db9c6d67f9af783df8ee4c7ff398047618caeb1b`.
 - Artifacts: `artifacts/0006-trajectories.jsonl` (36 records),
-  `artifacts/0006-summary.json`; verifier (`verify-artifacts`): 12/12
-  PASS.
+  `artifacts/0006-summary.json`; verifier (`verify-artifacts`): 14/14
+  PASS (12 pre-audit checks + `factorial_completeness` +
+  `registered_run_order` added by the audit).
+- Raw trajectory immutability: `0006-trajectories.jsonl` SHA-256
+  `09858422045041440bb66fa88b623c88bb335288ee9bfaec0dd3f14e9097a0ed`
+  — identical before and after the post-run audit (the audit never
+  re-executed an episode; it re-derived the *derived* summary and
+  extended the verifier). The summary artifact was regenerated from
+  the untouched raw file after the tag-semantics fix; its
+  `code_under_test_commit` field still records the commit the 36
+  episodes actually ran under.
+- Trajectory-tag semantics in the committed summary are the
+  audit-fixed definitions; the as-executed (pre-audit) values are
+  documented in § Trajectory divergence for provenance.
