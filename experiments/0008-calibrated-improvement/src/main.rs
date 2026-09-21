@@ -63,7 +63,13 @@ fn parse_flags(args: &[String], required: &[&str]) -> Result<Flags, String> {
     let mut flags = Flags::default();
     let mut i = 0;
     while i < args.len() {
-        let known = ["--trajectories", "--summary", "--selection"]
+        let known = [
+                "--trajectories",
+                "--summary",
+                "--selection",
+                "--code-commit",
+                "--endpoint",
+            ]
             .iter()
             .any(|r| *r == args[i]);
         if !known {
