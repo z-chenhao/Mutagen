@@ -73,7 +73,7 @@ Summary of principles, not implementation:
 | Small shared core | One `runAgentLoop` in `packages/agent` shared by all modes | A single `run_episode` function in `kernel.rs`; no mode-specific copies | The kernel must be reusable by future evaluators without presenting |
 | Tool-first execution | `ToolDefinition` (description) / `AgentTool` (execution) split; `tools` array on the request | `ToolSpec` (JSON schema) + `ToolExecutor::execute` in `tools.rs` | The model only ever sees exactly two state tools |
 | Presentation outside kernel | `AgentSession` and modes are outside the agent core; the loop knows no TUI/RPC | `kernel.rs` has no CLI, formatting, or filesystem awareness; `main.rs`/`experiment.rs` own them | Keeps the kernel a clean observation/evolution target |
-| Structured events | Closed typed `AgentEvent` union with lifecycle start/end pairs | Closed 8-variant `TrajectoryEvent` enum; kernel appends events to its own vector | Trajectories come from the kernel, never reconstructed from logs |
+| Structured events | Closed typed `AgentEvent` union with lifecycle start/end pairs | Closed 9-variant `TrajectoryEvent` enum; kernel appends events to its own vector | Trajectories come from the kernel, never reconstructed from logs |
 | Explicit session/episode state | `AgentState { messages, model, tools, isStreaming, pendingToolCalls, errorMessage }` | `EpisodeState { messages, events, model_turn_count, tool_call_count }` | Minimal counters are all this experiment's loop needs |
 | Extension/plugin features outside minimum kernel | Extensions, skills, commands, custom tools are session-layer add-ons | Absent entirely: no extension surface exists in the crate | 0006 must not accrete Pi's product machinery |
 
@@ -600,10 +600,12 @@ definitions (see § Trajectory Tags) so that no tag is a
 3. The verification metric moves 0.0 → 1.0 (13/0 baseline writes
    verified vs 11/11 candidate writes verified); the candidate's own
    final answers reference the read-back explicitly.
-4. The artifact pipeline (canonical fields, hashes, redaction, verifier
-   with 12 structural checks, summary recomputation) is stable on real
-   model output, including the model's `reasoning_content` field
-   (present in raw responses; absent from every artifact).
+4. The artifact pipeline (canonical fields, hashes, redaction, 14/14
+   verifier checks, summary recomputation) is stable on real model
+   output, including the model's `reasoning_content` field (present in
+   raw responses; absent from every artifact). The 14/14 result is the
+   12 pre-audit structural checks plus the two audit-added checks
+   (`factorial_completeness`, `registered_run_order`).
 5. A real Qwen model issues parallel tool calls on multi-value tasks
    even under an explicit one-call-per-turn instruction (9/36
    episodes; 6/6 on `read_both`). This is a measured property of the
