@@ -163,7 +163,7 @@ The core loop itself is a single `while` over "response has tool calls".
 | Parallel tool execution with per-tool execution modes | Concurrency is a throughput feature | Rejected: synchronous single-call execution; a >1-call response is recorded as `parallel_tool_calls_unsupported`, not silently serialized | rejected |
 | Streaming deltas (`message_update`), partial tool results | Interactive responsiveness | Rejected: non-streaming `chat/completions`; the 8 event set covers the lifecycle without deltas | rejected |
 | `reasoning`/thinking content carried in messages | Provider-specific chain-of-thought | Rejected: reasoning fields are ignored, never stored, never persisted (spec §24) | rejected |
-| 3.7k-line `AgentSession` with ~20 subsystems | Mature product sessions accrete subsystems | The experimental kernel targets <1k lines total in the crate; every subsystem above is absent by construction, not by flag | adopted (as a design constraint) |
+| 3.7k-line `AgentSession` with ~20 subsystems | Mature product sessions accrete subsystems | The kernel module is a single ~400-line file whose core is one loop function; every subsystem above is absent by construction, not by flag (the full crate is ~4k lines only because of tests and the artifact verifier) | adopted (as a design constraint) |
 
 ## Adopt / Reject / Defer
 
