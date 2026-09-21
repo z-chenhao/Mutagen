@@ -38,6 +38,23 @@ All five must pass before opening a pull request.
 - For anything evolution-related, reference the experiment record in
   [`docs/experiments/`](docs/experiments/).
 
+## Branching and merging
+
+The full policy lives in [`AGENTS.md`](AGENTS.md) (it binds humans and AI
+agents alike); the short version:
+
+- `main` is the stable integration branch: no direct development, no
+  force-push, no unvalidated merges.
+- One task = one branch from the latest `main`, named
+  `<type>/<kebab-case-name>` (`feat/`, `fix/`, `refactor/`, `exp/`,
+  `docs/`, `test/`, `perf/`, `ci/`, `chore/`); experiments use
+  `exp/<id>-<short-name>`.
+- Small commits with `<type>: <imperative summary>` messages.
+- The full validation suite must pass and your own diff inspected before
+  pushing. Push your branch only — never `main`.
+- Everything lands via PR, **squash-merged** after review; merged branches
+  are deleted, never reused.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the
