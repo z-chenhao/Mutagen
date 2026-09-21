@@ -264,7 +264,7 @@ invalid if the historical baseline does not replay.
 rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
 cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)
 Darwin zhuchenhaos-Mac-Studio.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64
-code-under-test commit: TO_BE_RECORDED (branch exp/0003-trajectory-divergence; base main 21b755b)
+code-under-test commit: bb8892a3a60ff5545282cbffdd282b2e01445a51 (branch exp/0003-trajectory-divergence; base main 21b755b)
 ```
 
 Hardware class: Apple M-series Mac (arm64). Dependencies: none added; the
