@@ -1,0 +1,76 @@
+{
+  "tasks": [
+    {
+      "id": "C1",
+      "name": "calibration_reliable_direct_write_x",
+      "split": "calibration",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "reliable" },
+      "target_state": { "x": "A", "y": "B" },
+      "prompt": "Set x to A. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "C2",
+      "name": "calibration_silent_fault_direct_write_x",
+      "split": "calibration",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "drop_first_write", "key": "x" },
+      "target_state": { "x": "A", "y": "B" },
+      "prompt": "Set x to A. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "C3",
+      "name": "calibration_reliable_conditional_write_x",
+      "split": "calibration",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "reliable" },
+      "target_state": { "x": "A", "y": "B" },
+      "prompt": "If x is EMPTY, set x to A. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "C4",
+      "name": "calibration_silent_fault_conditional_write_x",
+      "split": "calibration",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "drop_first_write", "key": "x" },
+      "target_state": { "x": "A", "y": "B" },
+      "prompt": "If x is EMPTY, set x to A. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H1",
+      "name": "heldout_reliable_direct_write_y",
+      "split": "heldout",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "reliable" },
+      "target_state": { "x": "EMPTY", "y": "C" },
+      "prompt": "Set y to C. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H2",
+      "name": "heldout_silent_fault_direct_write_y",
+      "split": "heldout",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault": { "mode": "drop_first_write", "key": "y" },
+      "target_state": { "x": "EMPTY", "y": "C" },
+      "prompt": "Set y to C. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H3",
+      "name": "heldout_reliable_replacement_x",
+      "split": "heldout",
+      "initial_state": { "x": "A", "y": "B" },
+      "fault": { "mode": "reliable" },
+      "target_state": { "x": "B", "y": "B" },
+      "prompt": "Change x from A to B. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H4",
+      "name": "heldout_silent_fault_replacement_x",
+      "split": "heldout",
+      "initial_state": { "x": "A", "y": "B" },
+      "fault": { "mode": "drop_first_write", "key": "x" },
+      "target_state": { "x": "B", "y": "B" },
+      "prompt": "Change x from A to B. Finish when the requested external state has been achieved."
+    }
+  ]
+}
