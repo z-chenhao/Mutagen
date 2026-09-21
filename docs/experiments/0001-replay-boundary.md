@@ -1,4 +1,4 @@
-# Experiment 0001 — Minimal Replay Boundary
+# Experiment 0001 — Observation Replay Boundary
 
 ## Experiment ID
 
@@ -6,37 +6,48 @@
 
 ## Research Question
 
-What is the minimum replay boundary required to evaluate a changed agent
-component against past execution experience?
+Can recorded external observations provide a deterministic replay boundary
+for evaluating changed agent behavior under environment drift?
 
-Specifically: when an agent execution depends on external observations, how
-can we replay the historical scenario while still allowing a changed
-component to execute and produce different behavior?
+A useful secondary formulation: can baseline and changed behavior be
+compared under the same historical external observations without consulting
+the current live environment?
+
+This experiment tests the *sufficiency* of one candidate replay boundary in
+one controlled scenario. It does not test whether that boundary is
+*minimal* — no ablations (removing the request, observation identity, call
+arguments, ordering, repetitions, or failures) are performed here.
 
 ## Hypothesis
 
 Stated before running:
 
-Recording only the original user input and final output is insufficient for
-evaluating a changed component. A useful replay mechanism must freeze
-behaviorally relevant external observations while re-executing the component
-under evaluation.
+Recording and replaying behaviorally relevant external observations at an
+agent component's external-interaction boundary is sufficient, in this
+deterministic scenario, to reproduce baseline behavior under historical
+conditions while still allowing changed behavior to execute and produce a
+different result.
 
 Expected properties:
 
-1. Live re-execution can change because the external environment changed.
-2. Final-output playback is deterministic but bypasses the candidate.
-3. Replaying recorded external observations allows both baseline and
-   candidate to execute against the same effective environment.
-4. Missing historical observations must fail explicitly instead of silently
-   falling back to live state.
+1. Live re-execution may differ under environment drift.
+2. Final-output playback bypasses the changed behavior (it never executes).
+3. Replaying the recorded external observations reproduces baseline
+   behavior.
+4. Changed behavior remains observable under identical replayed
+   observations.
+5. An unrecorded external interaction fails explicitly instead of silently
+   consulting live state.
+
+This hypothesis is scoped to this one deterministic scenario. It does not
+claim sufficiency for all agent architectures.
 
 ## Baseline
 
 Normal live re-execution: the exact same component code and logical request
 are run again against the current (live) external environment. This is Mode
-A. The baseline decision rule is: send the outreach message only if the
-account status is `Active`.
+A. The baseline decision rule is: send only if the `account_status`
+observation is `Active`.
 
 ## Independent Variable
 
@@ -50,16 +61,27 @@ Everything else is held fixed (see Controlled Variables).
 
 ## Controlled Variables
 
-- Logical request: `Request { account: "acme" }` ("should we send an outreach
-  message to this account?"), identical in every run.
-- Baseline implementation: send only if `account_status == Active`.
-- Candidate implementation: send if `account_status` is `Active` or `Warm`
-  (deliberately different deterministic rule).
-- Recorded E1 observation: `account_status = Warm` (the only observation made
-  during the original E1 execution).
-- Toy scenario: in-memory `Environment { account_status, account_score }`,
-  single account, no network, no LLM, no randomness, no wall-clock time.
-  Rust standard library only; no dependencies added.
+- Logical request: `Request { account: "acme" }`, identical in every run.
+  (In this fixture the request is accepted by the components but their
+  decision rules depend only on the external observation; the experiment
+  therefore makes no claim about the request's necessity in replay state.)
+- Baseline implementation: send only if the observation is `Active`.
+- Candidate implementation: send if the observation is `Active` or `Warm`
+  (a deliberately different deterministic rule).
+- Recorded E1 observation: `account_status = Warm` (the only external
+  interaction during the original E1 execution).
+- Toy scenario: in-memory environment, single request, no network, no LLM,
+  no randomness, no wall-clock time. Rust standard library only; no
+  dependencies added.
+- **The concrete account/outreach scenario is an arbitrary, deterministic
+  fixture.** It exists only to exercise a generic external-observation
+  boundary (request → decision logic → external lookup → environment).
+  The business-shaped vocabulary (`account_status`, `account_score`,
+  "outreach") is disposable fixture language and carries zero architectural
+  meaning; no Account/Customer/Campaign/Outreach/CRM concept is introduced
+  by or for this experiment. Future experiments should prefer
+  domain-neutral fixtures unless a specific domain is itself the
+  independent variable.
 
 ## Input / Replay Dataset
 
@@ -70,10 +92,12 @@ One deterministic scenario, fully defined in the example
   - `E1`: `account_status = Warm`, `account_score = false` (state at
     recording time)
   - `E2`: `account_status = Active`, `account_score = false` (drifted state)
-- Original execution: baseline vs E1 → decision `DoNotSend`; boundary record
-  = `{ account_status = Warm }`.
-- The replay dataset is exactly that one boundary record. There is no other
-  data; no external files, no serialization, no persistence.
+- Original execution: baseline vs E1 → decision `DoNotSend`; the boundary
+  record holds the one recorded external observation
+  `{ account_status = Warm }`.
+- The replay dataset is exactly those recorded external observations plus
+  the logical request; no other data. Nothing is serialized or persisted;
+  the record is constructed in memory each run.
 
 Reproducible by running:
 
@@ -87,13 +111,13 @@ Behavioral pass/fail observations (no weighting, no scoring):
 
 | Metric | Meaning |
 |---|---|
-| M1 | Live rerun changes under environment drift (same request, same code, E1 → E2) |
-| M2 | Final-output playback cannot evaluate candidate behavior (deterministic, but candidate unobservable) |
-| M3 | Boundary replay reproduces baseline behavior (replayed baseline == original E1 baseline) |
-| M4 | Repeated boundary replay is deterministic (two replays identical) |
-| M5 | Candidate receives the exact recorded external observation |
-| M6 | Candidate behavior can still differ under identical replayed observations |
-| M7 | Missing recorded observation fails explicitly (no live fallback, no fabricated default) |
+| M1 | Live rerun may differ under environment drift (same request, same code, E1 → E2) |
+| M2 | Final-output playback cannot evaluate changed behavior (deterministic, but no component executes under it) |
+| M3 | Recorded-observation replay reproduces baseline behavior (replayed baseline == original E1 baseline) |
+| M4 | Repeated recorded-observation replay is deterministic (two replays identical) |
+| M5 | The changed behavior receives the exact recorded external observation |
+| M6 | The changed behavior can still differ under identical replayed observations |
+| M7 | An unrecorded external interaction fails explicitly (no live fallback, no fabricated default) |
 
 ## Execution Environment
 
@@ -101,7 +125,7 @@ Behavioral pass/fail observations (no weighting, no scoring):
 rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
 cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)
 Darwin zhuchenhaos-Mac-Studio.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64
-git rev-parse HEAD: 48e021f9140f338cec1265aa513101e258f30fb1 (main, base of the branch)
+git: branch exp/0001-replay-boundary; base commit 48e021f9140f338cec1265aa513101e258f30fb1 (main)
 ```
 
 Hardware class: Apple M-series Mac (arm64). Dependencies: workspace
@@ -110,10 +134,10 @@ uses only `std`). Cargo.toml and Cargo.lock are unmodified.
 
 ## Results
 
-Raw results of a single run:
+Raw results of a run:
 
 ```
-Experiment 0001 — Minimal Replay Boundary
+Experiment 0001 — Observation Replay Boundary
 request: send outreach to account 'acme'
 recorded observation: account_status = AccountStatus(Warm)
 M1 PASS
@@ -127,16 +151,18 @@ Conclusion: supported
 ```
 
 - M1 PASS — baseline: E1 (`Warm`) → `DoNotSend`; E2 (`Active`) → `Send`.
-  Same request, same code, different external state, different result.
+  Same request, same code, different external state, different result:
+  live re-execution is contaminated by environment drift.
 - M2 PASS — output playback returned the recorded `DoNotSend` identically on
-  every call, and the "candidate" under playback is indistinguishable from
-  the baseline, even though the candidate genuinely differs from the
-  baseline under recorded-observation replay (`Send`).
+  every call and the execution flag shows no component executed under it;
+  baseline and candidate are indistinguishable under playback, even though
+  the candidate genuinely differs from the baseline under
+  recorded-observation replay (`Send`).
 - M3 PASS — baseline against the replay lookup (serving `Warm`) reproduced
   `DoNotSend`, matching the original E1 result.
 - M4 PASS — a second replay of the baseline produced the identical result.
 - M5 PASS — the candidate's actual lookups (captured at the replay boundary)
-  were exactly `{ account_status = Warm }`, i.e. the original record.
+  were exactly the recorded `{ account_status = Warm }`.
 - M6 PASS — under that identical observation the candidate produced `Send`
   while the baseline produced `DoNotSend`.
 - M7 PASS — a candidate variant that additionally looks up `account_score`
@@ -148,7 +174,7 @@ Conclusion: supported
 
 The example was executed three separate times via
 `cargo run -p mutagen-runtime --example exp_0001_replay_boundary`.
-All three runs produced byte-identical output:
+All three runs produced identical output:
 
 | Run | Output |
 |---|---|
@@ -169,75 +195,125 @@ dataset is constructed in memory each run.
 
 ## Conclusion
 
-**supported**
+**supported** — scoped strictly to this experiment's own scope: *in this
+deterministic scenario*, recording and replaying the external observations
+at the component's external-interaction boundary is sufficient to reproduce
+baseline behavior while keeping changed behavior observable.
 
-All four expected properties of the hypothesis held, and the three replay
-strategies behaved exactly as predicted:
+### Demonstrated
 
-1. Live re-execution is not a valid evaluation of a changed component: the
-   same code and request produced a different result once the external
-   environment drifted (M1).
-2. Final-output playback is deterministic but evaluates nothing about the
-   component — the candidate never executes, so its behavior is
-   unobservable (M2).
-3. Freezing the external observations at the lookup boundary lets both
-   baseline and candidate re-execute against the same effective historical
-   environment: the baseline is exactly reproduced (M3, M4), the candidate
-   demonstrably receives the identical observations (M5), and its different
-   behavior remains measurable (M6).
-4. When the candidate probes a boundary that the original execution never
-   exercised, replay fails explicitly rather than blending in live state or
-   invented values (M7).
+In this deterministic toy scenario:
 
-The minimum replay boundary demonstrated here is therefore the *set of
-external observations a component actually makes at its lookup boundary*
-together with the logical request — not the final output, and not the raw
-environment. (This is a claim about this toy lookup boundary, see below.)
+- live re-execution can be contaminated by environment drift (M1);
+- final-output playback cannot evaluate changed behavior because it bypasses
+  execution entirely (M2);
+- replaying the recorded historical external observations reproduces
+  baseline behavior (M3) deterministically (M4);
+- changed behavior remains observable under the same historical
+  observations (M5, M6);
+- an unrecorded external interaction fails explicitly instead of silently
+  mixing historical and live state (M7).
+
+### Not demonstrated
+
+This experiment does **not** establish:
+
+- the minimal complete replay state — no ablations were run, so no part of
+  the replay record (request, observation identity, observation value, call
+  arguments, ordering, repetition, errors) has been shown to be *necessary*;
+- logical-request necessity — the fixture's decision rules do not actually
+  consume the request field;
+- any observation *representation* — the implementation is a throwaway
+  local lookup over one recorded observation; it does not choose between
+  set, map, sequence, ordered event stream, multimap, call-indexed trace,
+  or argument-sensitive interaction record;
+- call ordering, repeated same-key lookups, or argument matching;
+- side-effect replay or error-replay semantics;
+- stochastic model replay or LLM replay (the scenario is fully
+  deterministic);
+- cross-domain generalization or general-agent sufficiency;
+- any production replay API, serialization, persistence, component or
+  revision identity, lineage, storage, tool schema, plugin architecture,
+  promotion, or rollback;
+- any production architecture selection.
+
+Two explicit non-claims:
+
+> This experiment does not establish the minimal complete replay state.
+
+> This experiment does not establish generality across heterogeneous agent
+> domains.
+
+### Generalization limitation
+
+This experiment uses one deterministic fixture and establishes a local
+mechanism result only. It does not demonstrate that the same replay
+boundary is sufficient across heterogeneous agent environments such as
+coding, research, multi-tool workflows, stateful interactive environments,
+or stochastic model execution. A result from one toy scenario is local
+evidence, not proof of general-agent applicability; establishing that a
+replay boundary is a general agent invariant requires evidence across
+heterogeneous agent task types, which is explicitly out of scope here.
 
 ## Architectural Evidence
 
 ### Supported by this experiment
 
-- Recording external observations at a component's lookup boundary, and
-  re-serving them during replay, is sufficient in this scenario to make
-  both baseline and candidate execution comparable under one frozen
-  effective environment.
-- The final output alone is not a sufficient replay unit for evaluating a
-  changed component (it makes the candidate unobservable).
-- Replay can preserve baseline identity while still surfacing a candidate's
-  behavioral difference.
-- Explicit failure on unrecorded boundary probes is a viable and
-  distinguishable behavior (distinct from live lookup and from defaults).
-- The distinction between "component behavior" and "external observation"
-  is a meaningful and useful seam for a replay design.
+Local evidence only, from this one deterministic scenario:
+
+- An external-observation seam is a viable replay boundary in this
+  deterministic scenario.
+- Replaying historical observations can isolate changed behavior from live
+  environment drift in this scenario, while still exposing the behavioral
+  difference between baseline and changed behavior.
+- Direct final-output playback is unsuitable when the purpose is to
+  evaluate changed behavior.
+
+Nothing here is a selected architecture.
 
 ### Not established by this experiment
 
 Nothing in this experiment establishes or selects any of the following:
 
-- production replay API (the example's closures are private and throwaway)
-- serialization format (nothing is serialized; all state is in-memory)
-- persistence format (no storage of any kind)
-- component identity (no `Component`/ID type exists)
-- revision identity (no revision semantics anywhere)
+- the minimal complete replay state (no necessity ablations were run);
+- logical-request necessity in replay state;
+- any observation representation (set, map, sequence, ordered stream,
+  multimap, call-indexed trace, argument-sensitive record);
+- call ordering or repeated-lookup semantics;
+- argument matching between a candidate's interactions and the record;
+- side-effect replay or error-replay semantics;
+- production replay API (the example's closures are private and throwaway);
+- serialization format (nothing is serialized; all state is in-memory);
+- persistence format (no storage of any kind);
+- component identity (no `Component`/ID type exists);
+- revision identity (no revision semantics anywhere);
 - candidate identity (the words *baseline* and *candidate* are local
-  function names, not identities)
-- lineage (no parent/child or generation concepts)
-- storage (no database, file, or any persistence layer)
-- LLM replay (no model calls of any kind)
-- stochastic model handling (the scenario is fully deterministic)
-- tool schema (the "lookup" boundary is a one-call toy, not a tool schema)
-- plugin architecture (no loading, registration, or extension mechanism)
-- promotion (no decision about what becomes production)
-- rollback (no deployment or versioned-artifact machinery)
+  function names, not identities);
+- lineage (no parent/child or generation concepts);
+- storage (no database, file, or any persistence layer);
+- LLM replay (no model calls of any kind);
+- stochastic model handling (the scenario is fully deterministic);
+- tool schema (the "lookup" boundary is a one-call toy, not a tool schema);
+- plugin architecture (no loading, registration, or extension mechanism);
+- promotion (no decision about what becomes production);
+- rollback (no deployment or versioned-artifact machinery);
+- cross-domain generalization or any general-agent invariant.
 
 ## Follow-up Question
 
-When a changed component makes *more* or *different* external lookups than
-the original execution (as M7's `account_score` probe shows), what is the
-minimum *matching* policy between the candidate's lookup sequence and the
-recorded observation set — which lookups must match by key, and how should
-the boundary record represent the *sequence* of observations (order,
-repeats, conditional branches) rather than just the set of distinct keys?
+Primary (necessity, not representation design):
 
-(This question is recorded only; it is not implemented here.)
+Which pieces of historical execution state are actually necessary for
+faithful candidate evaluation — input, observation identity, observation
+value, call arguments, ordering, repetition, errors, and other external
+effects — and which can be removed without changing the evaluation result?
+
+Second-order (generality, recorded only):
+
+Which replay requirements remain invariant across heterogeneous agent task
+types (coding, research, multi-tool workflows, stateful interactive
+environments, stochastic model execution), and which are local to one
+task type?
+
+Neither question is answered or implemented here; this experiment is
+deliberately a local mechanism proof.

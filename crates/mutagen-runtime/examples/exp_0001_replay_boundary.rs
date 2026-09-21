@@ -1,11 +1,11 @@
-//! Experiment 0001 — Minimal Replay Boundary.
+//! Experiment 0001 — Observation Replay Boundary.
 //!
 //! Research question:
-//!   What is the minimum replay boundary required to evaluate a changed agent
-//!   component against past execution experience? When an execution depends
-//!   on external observations, how can we replay the historical scenario
-//!   while still letting a changed component execute and produce different
-//!   behavior?
+//!   Can recorded external observations provide a deterministic replay
+//!   boundary for evaluating changed agent behavior under environment
+//!   drift? Equivalently: can baseline and changed behavior be compared
+//!   under the same historical external observations without consulting
+//!   the current live environment?
 //!
 //! Toy scenario (deterministic, in-memory, Rust standard library only):
 //!
@@ -20,6 +20,11 @@
 //!   Mode A — live re-execution against a drifting environment (M1)
 //!   Mode B — final-output playback, a negative control        (M2)
 //!   Mode C — recorded-observation (boundary) replay           (M3–M7)
+//!
+//! The account/outreach vocabulary is arbitrary, disposable fixture
+//! language: it exists only to exercise a generic external-observation
+//! boundary. It carries no architectural meaning and is not a production
+//! concept.
 //!
 //! No production abstractions are introduced. Every type and function in
 //! this file is private to the experiment.
@@ -102,8 +107,10 @@ fn replay_lookup(recorded: &[RecordedObservation], key: &str) -> Result<Observat
 }
 
 /// Mode B: final-output playback. Returns the recorded final output
-/// verbatim. The "component" under playback never executes at all.
-fn playback(recorded_output: Decision) -> Decision {
+/// verbatim and reports that the "component" never executed: playback
+/// simply returns the stored output, so `component_executed` stays `false`.
+fn playback(recorded_output: Decision, component_executed: &mut bool) -> Decision {
+    *component_executed = false;
     recorded_output
 }
 
@@ -198,7 +205,7 @@ fn main() {
         account_score: false,
     };
 
-    println!("Experiment 0001 — Minimal Replay Boundary");
+    println!("Experiment 0001 — Observation Replay Boundary");
     println!("request: send outreach to account '{}'", request.account);
 
     // Original execution: baseline against E1. The boundary record holds
@@ -217,13 +224,15 @@ fn main() {
     let m1 = original != live_again;
 
     // Mode B — final-output playback (negative control): return the
-    // recorded final output directly, for any "component".
+    // recorded final output directly, for any "component". Attempt both
+    // the baseline and the candidate this way; neither actually executes.
     let final_output = match &original {
         Ok(decision) => *decision,
         Err(err) => panic!("original baseline run unexpectedly failed: {err:?}"),
     };
-    let playback_1 = playback(final_output);
-    let playback_2 = playback(final_output);
+    let mut component_executed = true;
+    let baseline_under_playback = playback(final_output, &mut component_executed);
+    let candidate_under_playback = playback(final_output, &mut component_executed);
 
     // Mode C — recorded-observation (boundary) replay: the replay lookup
     // serves the E1 observations instead of querying the live E2 state.
@@ -258,11 +267,13 @@ fn main() {
     ));
     let m7 = missing == expected;
 
-    // M2: playback is deterministic, but the candidate is unobservable
-    // under it — even though the candidate genuinely differs from the
-    // baseline when both run against the same recorded observations.
-    let m2 = playback_1 == playback_2
-        && playback_1 == final_output
+    // M2: playback is deterministic, the "component" demonstrably never
+    // executed under it (flag stays false), yet the candidate genuinely
+    // differs from the baseline when both run against the same recorded
+    // observations — so playback cannot evaluate the candidate.
+    let m2 = baseline_under_playback == candidate_under_playback
+        && baseline_under_playback == final_output
+        && !component_executed
         && candidate_replay != baseline_replay_1;
 
     report("M1", m1);
