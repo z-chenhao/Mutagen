@@ -1,0 +1,35 @@
+# Standalone experiment workspace.
+#
+# This crate deliberately does NOT join the production workspace (the
+# empty `[workspace]` table below detaches it from the repository root
+# workspace). Nothing here is a production API and nothing here is
+# promoted to `mutagen-core` / `mutagen-runtime` / `mutagen-cli`.
+#
+# Duplication is deliberate: Experiment 0008 copies the minimal
+# kernel/protocol/model ideas validated in Experiments 0006 and 0007
+# instead of depending on the 0007 crate. Experiment 0008's purpose is
+# to test a *baseline-only, pre-registered difficulty-calibration*
+# procedure (two-stage: calibrate → freeze → held-out evaluate); the
+# `calibration` module is 0008-specific.
+[package]
+name = "mutagen-exp-0008"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Serialization for the OpenAI-compatible chat protocol and artifacts.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Synchronous HTTP client for the single model endpoint.
+# Synchronous on purpose: no async runtime is introduced.
+ureq = { version = "2", features = ["json"] }
+# SHA-256 for prompt / task-suite / artifact provenance hashes.
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
