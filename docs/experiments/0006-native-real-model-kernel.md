@@ -223,6 +223,16 @@ tags may apply: `exact`, `added_call`, `omitted_call`, `novel_call`,
 `state_effect_order_change` (the relative W/R order on a key changes).
 Canonical call identity = tool name + key-sorted JSON arguments.
 
+Implementation semantics (as executed by the code-under-test commit):
+`argument_change` fires when the multiset of canonical arguments for
+some tool name differs between the two runs, and
+`state_effect_order_change` fires when the ordered write/read pattern
+on some key differs. Both are therefore *difference* tags that also
+fire when the mutation adds a call of a tool (or a read of a key) the
+other run did not perform; they intentionally overlap with
+`added_call` / `novel_call` and are reported as independent
+observations.
+
 ## Verification Metric
 
 For each successful `state_write(key, …)` in an eligible episode, the
@@ -261,39 +271,185 @@ The rule is not modified after results.
 
 ## Results
 
-_PENDING — real model execution recorded after the code-under-test
-commit._
+Executed with 3 repetitions (36 episodes) against a local Qwen model
+(`incoai/Qwen3.8-27B-Splash` served at an OpenAI-compatible endpoint,
+`temperature = 0.2`). Code-under-test commit
+`fdca01e1a21a958ceb318f44231ad60c91f141e4`. Raw evidence:
+[`artifacts/0006-trajectories.jsonl`](artifacts/0006-trajectories.jsonl) (36
+records), [`artifacts/0006-summary.json`](artifacts/0006-summary.json).
 
-## Failed Episodes
+### Headline numbers
 
-_PENDING._
+| Measure | Baseline | Candidate |
+| --- | --- | --- |
+| Eligible episodes | 14 / 18 | 13 / 18 |
+| Total tool calls (eligible) | 22 | 31 |
+| Successful writes | 13 | 11 |
+| Verified writes (same-key read-back after write) | 0 | 11 |
+| **Verification rate** | **0.0** | **1.0** |
+
+### Trajectory divergence (12 eligible pairs)
+
+| Tag | Count | Task IDs |
+| --- | --- | --- |
+| exact | 3 | T1 |
+| added_call | 9 | T3, T4, T5 |
+| argument_change | 9 | T3, T4, T5 |
+| novel_call | 6 | T3, T5 |
+| repeated_count_change | 3 | T4 |
+| state_effect_order_change | 9 | T3, T4, T5 |
+| reordered | 0 | — |
+| omitted_call | 0 | — |
+
+Non-exact pairs: **9 of 12** — all three write tasks that produced
+eligible pairs (T3, T4, T5) were non-exact in all 3 of their
+repetitions each (9/9). The single read-only task with eligible pairs
+(T1) was exact in all 3.
+
+Canonical per-repetition trajectories (deterministic across all 3
+repetitions on every eligible episode):
+
+| Task | Baseline | Candidate |
+| --- | --- | --- |
+| T1 | `read(x)` | `read(x)` |
+| T3 | `write(x=A)` | `write(x=A)`, `read(x)` |
+| T4 | `read(x)`, `write(x=A)` | `read(x)`, `write(x=A)`, `read(x)` |
+| T5 | `write(x=A)`, `read(y)` | `write(x=A)`, `read(x)`, `read(y)` |
+
+The one-line mutation produced exactly its predicted behavioral
+signature on every eligible write episode: a same-key `state_read`
+inserted after each successful `state_write` (e.g. candidate T3 final
+answer: *“Done. `x` is now set to `A` (write succeeded and verified by
+read-back)”*). Baseline final answers never mention verification and
+perform no read-back.
+
+Note on tag semantics: `argument_change` and
+`state_effect_order_change` are implemented as *multiset/pattern
+difference* tags; they therefore also fire when the mutation adds a
+call of a tool (or a read of a key) that the baseline did not perform.
+They overlap with `added_call`/`novel_call` by construction; all tags
+are independent observations, and the non-overlapping tags
+(`added_call`, `novel_call`, `repeated_count_change`) already carry the
+same signal.
+
+### Failed episodes
+
+9 of 36 episodes ineligible — **all** with termination
+`parallel_tool_calls_unsupported`:
+
+| Task | Condition | Reps failed / 3 | Detail |
+| --- | --- | --- | --- |
+| T2 (read_both) | baseline | 3 | model issued `read(x)` + `read(y)` in one response, turn 1 |
+| T2 (read_both) | candidate | 3 | same |
+| T6 (two_writes) | baseline | 1 / 3 | parallel `write(x=A)` + `write(y=B)` in turn 1 |
+| T6 (two_writes) | candidate | 2 / 3 | parallel writes in turn 3 (after two sequential single-call turns) |
+
+No HTTP failures, parse failures, unknown tools, invalid arguments, or
+limit hits occurred. The read-only control recorded **0** unexpected
+`state_write` calls.
+
+### Kernel reliability
+
+| Failure type | Count |
+| --- | --- |
+| HTTP failures | 0 |
+| Response parse failures | 0 |
+| Unknown tools | 0 |
+| Invalid arguments | 0 |
+| Parallel tool calls | 9 |
+| Turn limit | 0 |
+| Tool-call limit | 0 |
+| Eligible episodes | 27 / 36 |
+
+### Timing (all 36 episodes, approximate)
+
+| Measure | Value |
+| --- | --- |
+| Total wall time | 162.2 s |
+| Model wait time | 162.2 s |
+| Tool execution | 113 µs |
+| Kernel overhead estimate | ≈ 0 ms (labeled approximate) |
+| Tokens (36 episodes) | 52,731 prompt / 6,121 completion |
+
+The kernel is an in-memory observer of a local model; the timing
+table shows the run was dominated by model inference. No benchmark
+claim is made.
 
 ## Conclusion
 
-_PENDING: supported / refuted / inconclusive._
+**inconclusive** — exactly as the pre-registered rule dictates.
+
+Eligibility sufficiency failed on the first gate: fewer than 2
+read-only tasks have ≥1 eligible pair. T1 qualified (3/3 pairs); T2
+(`read_both`) qualified in **zero** repetitions because the model
+answered every T2 prompt by issuing both reads as *parallel* tool
+calls in a single response, which the one-call-per-turn kernel policy
+correctly refuses (6/6 T2 episodes ineligible). Write-task
+sufficiency was met (T3, T4, T5 each 3/3 eligible pairs; T6 0/3 for
+the same parallel-call reason).
+
+This is **not** a failure of the mutation. Both behavioral conditions
+of the rule were in fact strongly met: 3 distinct write-containing
+tasks show 9/9 non-exact pairs, and the candidate verification rate
+(1.0) exceeds the baseline (0.0). The experiment is inconclusive
+solely because a read-only *control* could not produce eligible pairs
+against a real model that parallelizes reads.
+
+The methodologically interesting finding is the gate itself: a real
+Qwen model, prompted with “at most one tool call per turn,” still
+responds to multi-value tasks (read *both*; write *two* keys) with
+parallel calls — a measured interaction between the tool-use policy and
+the model's native parallel-call behavior that a synthetic fixture can
+never surface. Whether such responses should be rejected, serialized,
+or treated as a separate protocol feature is a genuine open question
+for future experiments; 0006's kernel chose (by pre-registration) to
+reject and record.
 
 ## Relationship to Experiments 0002–0005
 
-Structural correspondence only:
+Structural correspondence only — and the correspondence held on real
+data:
 
-- **0002 (record ablation)** → which recorded fields matter: 0006's
-  artifacts persist the canonical fields (sequence, turn,
-  tool_call_id, tool_name, arguments, result) that 0002 studied
-  synthetically.
-- **0003 (trajectory divergence)** → the 8 tags, especially
-  `exact` / `reordered` / `added` / `novel`, are the same tag family
-  0003 defined; 0006 tests whether real model trajectories exhibit
-  them under a prompt mutation.
-- **0004 (stateful causality)** → `state_effect_order_change` and the
-  verification metric are 0004's same-key W/R causality question on
-  real trajectories.
-- **0005 (effect metadata)** → 0006 uses no replay and no effect
-  metadata; it only establishes that the *measurement substrate*
-  (kernel + real model) works before any reuse question is revisited.
+- **0002 (record ablation)** → the artifact fields persist exactly the
+  canonical record 0002 studied; on real trajectories the ordering
+  field is load-bearing (the mutation *inserts* a read between write
+  and final answer).
+- **0003 (trajectory divergence)** → the tag family was designed on
+  independent read-only fixtures; on real data `exact` / `added_call`
+  / `novel_call` / `state_effect_order_change` all fired as designed,
+  and `reordered` / `omitted_call` did not — the mutation adds, it
+  does not permute.
+- **0004 (stateful causality)** → the W/R same-key pattern is now
+  observed to *change* under a policy mutation; the verification
+  metric (post-write same-key read) is 0004's causality question
+  measured on live behavior.
+- **0005 (effect metadata)** → no reuse is attempted here; 0006 only
+  establishes that the measurement substrate (kernel + real model +
+  canonical records) works, which 0005's reuse guards would need as
+  input.
 
 ## Evidence We Can Claim
 
-_PENDING after execution._
+1. A Rust-owned synchronous kernel can drive a real Qwen model through
+   a complete tool-using episode, with the kernel (not the model, not
+   any external harness) owning state, dispatch, termination, and
+   authoritative trajectory recording.
+2. A one-line system-prompt mutation changed the external-interaction
+   trajectory of a real Qwen-driven agent: on all 9 eligible
+   write-task pairs the candidate trajectories are non-exact, and the
+   change is uniform (same-key read-back inserted after every
+   successful write) across all 3 repetitions of each task.
+3. The verification metric moves 0.0 → 1.0 (13/0 baseline writes
+   verified vs 11/11 candidate writes verified); the candidate's own
+   final answers reference the read-back explicitly.
+4. The artifact pipeline (canonical fields, hashes, redaction, verifier
+   with 12 structural checks, summary recomputation) is stable on real
+   model output, including the model's `reasoning_content` field
+   (present in raw responses; absent from every artifact).
+5. A real Qwen model issues parallel tool calls on multi-value tasks
+   even under an explicit one-call-per-turn instruction (9/36
+   episodes; 6/6 on `read_both`). This is a measured property of the
+   model/kernel boundary.
 
 ## Evidence We Cannot Claim
 
@@ -324,7 +480,17 @@ improvement from regression?
 
 ## Execution Provenance
 
-- Code-under-test commit: _PENDING_
-- Model / endpoint (redacted): _PENDING_
-- Artifacts: `artifacts/0006-trajectories.jsonl`,
-  `artifacts/0006-summary.json`
+- Code-under-test commit: `fdca01e1a21a958ceb318f44231ad60c91f141e4`
+  (`fix: set Content-Type application/json on model request`; the
+  initial kernel commit is `c59e01956113bfa1150ea12772bec22c9ec3adb5`).
+- Model: `incoai/Qwen3.8-27B-Splash`; endpoint (redacted):
+  `http://127.0.0.1:8000/v1`; temperature 0.2; no API key required
+  (local server); no reasoning fields or credentials appear in any
+  artifact.
+- Prompt hashes (SHA-256): baseline
+  `cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def`,
+  candidate `798059e34d71aff90420ad687c5990e6707fbc48e6fb26c44dcc54bdf2b0a613`;
+  task suite `4bc8852e8e2de2a2ddb2eab3db9c6d67f9af783df8ee4c7ff398047618caeb1b`.
+- Artifacts: `artifacts/0006-trajectories.jsonl` (36 records),
+  `artifacts/0006-summary.json`; verifier (`verify-artifacts`): 12/12
+  PASS.
