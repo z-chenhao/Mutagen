@@ -311,7 +311,26 @@ from the model and the oracle.
 - Temperature: 0.2; `tool_choice`: auto; non-streaming
 - Code-under-test commit: `0ce6de36319e1f083ae598d7046e2d7c5f317c4f` (the pre-registered code; the model run used exactly this build)
 - Artifacts: complete (144/144 records, all fields present)
-- Raw artifact SHA-256: trajectories `a368db71ead6f7dbf7859c3c3df981b9c7452cd0dda82d49540c6daa042318d3`, summary `06d03de88fefa7589205c1f5be2ff315098760fe82bd1ec652855e7f6c0f6005`
+
+**Artifact provenance** (three distinct provenance points):
+
+- **Raw trajectories** (`0007-trajectories.jsonl`) SHA-256:
+  `a368db71ead6f7dbf7859c3c3df981b9c7452cd0dda82d49540c6daa042318d3` —
+  the immutable primary evidence; byte-identical throughout all post-run
+  audits.
+- **Original run-time derived summary** (`0007-summary.json` as written at
+  run completion) SHA-256:
+  `06d03de88fefa7589205c1f5be2ff315098760fe82bd1ec652855e7f6c0f6005` —
+  historical record only.
+- **Current committed derived summary** (offline-regenerated after the
+  fault-accounting audit added its machine-derived fields) SHA-256:
+  `c143d202a2ca47bb1bb1ad29770ab40a27eb05548171171348be03909b35d2f1`.
+
+`0007-summary.json` is a deterministic *derived* artifact: it was
+regenerated offline strictly from the immutable raw trajectories and the
+committed task registry after the fault-accounting fields were added. No
+model execution was repeated, and the raw trajectory file was never
+modified.
 
 ## Infrastructure Reliability
 
@@ -621,9 +640,11 @@ decision-relevant statistical counts and classifications (wins/losses/
 ties, sign-test inputs, pair counts, fault counts) are recomputed from
 raw integer/bool/string evidence; the affected `f64` fields (e.g.
 `cache_hit_ratio`) are *descriptive, not verdict inputs*. The raw
-artifacts are byte-identical to those written at run completion
-(SHA-256 recorded above); the correction landed in a post-run commit that
-changed only the verifier.
+trajectory artifact remained byte-identical to run completion throughout
+(SHA-256 in [Execution Integrity](#execution-integrity)); this correction
+landed in a post-run commit that changed only the verifier, and the later
+offline summary regeneration is a separate documented derivation step
+(see the artifact-provenance note above).
 
 ## Production Changes
 
