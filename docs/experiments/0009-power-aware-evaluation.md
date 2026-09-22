@@ -251,13 +251,30 @@ cargo run --manifest-path ... -- verify-evaluation ...
 the exact paired sign test classified the repair candidate
 `quality_improvement`.
 
-### Calibration code-under-test commit
+### Commit provenance
 
-`3d56c92c56eb2af7355336404a98356da6f7a5de`
-(exp: add power-aware transfer-validated improvement evaluation
-(0009)) — all design inputs (prompts, tasks, stress ladder, power
-constants, selectors, verifiers, this document) were committed before
-the first model request. Phase B re-verified every hash against it.
+- `3d56c92c56eb2af7355336404a98356da6f7a5de` — the
+  **executable / calibration code-under-test commit**
+  (exp: add power-aware transfer-validated improvement evaluation
+  (0009)): all design inputs (prompts, tasks, stress ladder, power
+  constants, selectors, verifiers, this document) were committed
+  before the first model request. Both phases ran this code, and every
+  record carries it as `code_under_test_commit` / `final_eval_commit`.
+  It is **not** the freeze commit.
+- `950d41fb458a3de6ef4e7a04d2d89b55aea7821e` — the **artifacts-only
+  Phase A freeze commit** (calibration trajectories + summary +
+  `evaluation-plan.json`; verified to contain no source files). This
+  is where the evaluation plan was frozen, before Phase B.
+- `25206ee2d9a8be377669972cb3669fc6ba5b24a5` — the **Phase B
+  result/artifact commit** (evaluation trajectories + summary + this
+  document's results section).
+
+It is valid, and by design, that Phase B records reference `3d56c92`
+as executable code provenance while the evaluation plan was frozen in
+`950d41f`: the executable never changed between the two phases, and
+the plan's hashes (prompts, task registry, calibration raw) were all
+verified against the `3d56c92` files and against the frozen plan.
+Phase B re-verified every hash against both before running.
 
 ### Phase A — family-level difficulty calibration (150 episodes)
 
@@ -267,12 +284,19 @@ the first model request. Phase B re-verified every hash against it.
 | `conditional_set` | D3: 5, 0, 0, 0, 0 | D4: 5, 0, 0, 0, 0 | pass | **S1** |
 | `replacement` | D5: 5, 5, 2, 0, 1 | D6: 5, 5, 0, 0, 0 | pass | **S2** |
 
-All three families passed the both-variants sanity gate and calibrating
-is monotone in the ladder as expected. `direct_set` tolerates one
-silent drop on both dev tasks (5/5 at S1) and collapses at two (1/5,
-1/5); `conditional_set` collapses at the first drop (0/5, 0/5);
-`replacement` splits (D5 2/5, D6 0/5 at S2) — the family-level rule
-selected the *lowest* stress where **both** variants are ≤ 40%.
+All three families passed the both-variants sanity gate. Success
+generally fell sharply as stress increased, but the realized counts
+were **not** strictly monotone because the model is stochastic: for
+example, `replacement`/D5 produced 5/5, 5/5, 2/5, 0/5, **1/5** across
+S0–S4, i.e. S4 (1) > S3 (0) in realized success count. The registered
+selector does **not** assume global empirical monotonicity: it selects
+the lowest stress at which both development variants satisfy the ≤ 2/5
+eligibility rule, so a non-monotone tail (S3 vs S4) is irrelevant to
+the decision. `direct_set` tolerates one silent drop on both dev tasks
+(5/5 at S1) and collapses at two (1/5, 1/5); `conditional_set`
+collapses at the first drop (0/5, 0/5); `replacement` splits (D5 2/5,
+D6 0/5 at S2) — the family-level rule selected the *lowest* stress
+where **both** variants are ≤ 40%.
 
 - Episodes: 150/150, artifacts complete
 - Oracle successes: 55; agent failures: 47 (41 turn_limit, 5
@@ -285,9 +309,10 @@ selected the *lowest* stress where **both** variants are ≤ 40%.
 
 ### Freeze
 
-Phase A artifacts + `evaluation-plan.json` committed as a single
-artifacts-only commit (verified: no source files in the freeze diff).
-Evaluation plan SHA-256 (file):
+Phase A artifacts + `evaluation-plan.json` were committed as the single
+artifacts-only Phase A freeze commit `950d41f` (verified: no source
+files in the freeze diff), which is where the evaluation plan was
+frozen before Phase B. Evaluation plan SHA-256 (file):
 `0cedab86cb332c3b8e85df819d430ba88574baed687faab03a14f4a9bdb47427`
 
 ### Power plan (frozen)
@@ -308,6 +333,7 @@ Evaluation plan SHA-256 (file):
 - Actual informative pairs: **41** (≥ 12) ✓
 - **Repair vs baseline: 41 wins / 0 losses / 7 ties — exact two-sided
   sign test p = 9.094947017729282e-13 < 0.05 → `quality_improvement`**
+  (the exact p equals 2/2⁴¹, as all 41 informative pairs were wins)
 
 Per-family diagnostics (selected stress):
 
@@ -317,13 +343,22 @@ Per-family diagnostics (selected stress):
 | `conditional_set` | S1 | 0.00 | 0.00 | 0.00 | 16 / 0 / 0 |
 | `replacement` | S2 | 0.40 | 0.1875 | −0.21 | 13 / 0 / 3 |
 
-The transfer diagnostic is the key contrast with 0008: one family
-transferred *easier* than calibration (−0.21), one exactly (0.00), one
-slightly harder (+0.05) — and the fixed 48-pair budget still produced
-41 informative pairs because **every** family's held-out baseline
-failed ≥ 75% of the time. The two-development-task rule bought
-robustness to per-variant transfer noise that the single-task 0008 rule
-could not.
+Reading of the transfer deltas
+(`held-out baseline rate − development max rate at the selected
+stress`; positive = held-out baseline succeeded *more*, i.e. held-out
+easier; negative = held-out harder): `direct_set` +0.05 transferred
+slightly *easier* than development; `conditional_set` 0.00 matched;
+`replacement` −0.2125 transferred *harder* than development.
+
+Transfer was **heterogeneous rather than perfectly stable** — it did
+not transfer uniformly in any single direction. This is the key
+contrast with 0008 (where transfer drift pushed the held-out baseline
+to a ceiling and starved the design of information): despite this
+heterogeneity, the frozen 48-pair power-aware evaluation retained 41
+baseline-failure opportunities and 41 informative pairs, because
+**every** family's held-out baseline still failed ≥ 75% of the time.
+The two-development-task rule bought robustness to per-variant transfer
+noise that the single-task 0008 rule could not.
 
 Condition-level outcomes:
 
@@ -335,36 +370,108 @@ Condition-level outcomes:
 The repair candidate used *fewer* requests, calls, prompt tokens
 (−19%) and completion tokens (−80%) while succeeding on every episode
 — the re-read/re-write loop both fixes the silent drops and lets the
-model terminate. Overall cache hit ratio 93.9%; the
-condition-position cache audit passed (no position-biased caching).
+model terminate.
+
+Cache-position audit (provider-reported, per condition×position cell):
+baseline position 1: 0.93643, baseline position 2: 0.93669, repair
+position 1: 0.94627, repair position 2: 0.93940. Condition order was
+exactly balanced by design (each condition ran first in exactly half
+the pairs). The provider-reported cache-hit ratios were similar across
+the condition-position cells, and no obvious position-associated cache
+imbalance was observed. This **does not** establish that cache effects
+were absent: near-equal provider-reported ratios across cells is
+consistent with, but not proof of, the absence of position bias, and
+no causal elimination of cache effects is claimed.
 
 ### Conclusions and claims
 
-**What this supports:** a candidate-blind, family-level,
-power-designed calibration procedure can (on this model, these
-families, this fault ladder) place held-out baselines into a
-high-failure regime whose information content exceeds the pre-
-registered detection requirement, and the objective evaluator then
-detects the controlled robustness improvement with overwhelming
-significance (p ≈ 9e-13) and zero losses. This is the first
-`supported` improvement-direction result in the series: 0007 saw the
-regression direction, 0008's gates correctly refused to over-claim,
-and 0009 shows the redesigned information gate passes *and* the
-candidate wins.
+**What this supports (scope of the claim):** on this model, these
+registered task families, and this silent-drop fault environment, a
+candidate-blind, family-level, power-aware calibration and frozen
+held-out evaluation produced sufficient information for the objective
+evaluator to detect the controlled repair policy as a statistically
+significant improvement. This is the first `supported`
+improvement-direction result in the series: 0007 saw the regression
+direction, 0008's gates correctly refused to over-claim, and 0009
+shows the redesigned information gate passes *and* the candidate wins.
 
 **What this cannot claim:**
 
-- Generalization beyond one model, one endpoint, and three small
-  two-key state families under a silent-drop fault model;
+- That general agent improvement evaluation is solved;
+- That all mutations can now be selected reliably;
+- That self-evolution works;
+- Cross-model stability (one local model, one endpoint);
+- Cross-run stability (one stochastic execution per phase; no model
+  reruns were performed — the frozen design does not allow resampling
+  the conclusion);
+- Generalization beyond three small two-key state families under a
+  silent-drop fault model;
+- A production promotion policy: 0009 validates the *measurement
+  substrate*, not a promotion policy. No production crate, API, or
+  behavior changed; nothing here is wired into
+  `mutagen-core`/`mutagen-runtime`.
 - That θ = 0.90 (the design assumption behind the power bound) holds
   for other candidates — here the repair won 100% of informative
-  pairs (41/41), far above the conservative design assumption;
-- Production selection: 0009 validates the *measurement substrate*,
-  not a promotion policy. No production crate, API, or behavior
-  changed; nothing here is wired into `mutagen-core`/`mutagen-runtime`.
-- A single execution: one stochastic run per phase; no model reruns
-  were performed (the frozen design does not allow resampling the
-  conclusion).
+  pairs (41/41), far above the conservative design assumption.
+
+### Self-Evolution Readiness (scope note)
+
+0009 provides enough evidence to justify **beginning** a controlled
+self-evolution experiment in which mutation generation is newly
+introduced while the evaluator, benchmark, and selection authority
+remain frozen. It does not demonstrate that self-evolution works, and
+no such experiment is implemented in this change.
+
+### Post-Hoc Methodology Limitation — Infrastructure Missingness During Calibration
+
+*This observation was made after execution. It does not alter the
+registered selector, the artifacts, the selected stresses, or the
+formal verdict; it is recorded for design hygiene of future
+experiments.*
+
+The only Phase A infrastructure failure was:
+
+| Field | Value |
+|---|---|
+| run | `exp0009-cal-1790056688-112` |
+| family / task | `replacement` / `D5` |
+| stress / repetition | `S3` / rep 3 |
+| `termination_reason` | `http_error` |
+| `infrastructure_failure` | `http_error` |
+| `oracle_success` | `false` |
+
+**Current calibration semantics (accurate statement).** The Phase A
+aggregation passes only `task_id`, `stress_id`, `repetition`, and
+`oracle_success` into `select_family_stress`. The 0009 calibration
+selector therefore treats an infrastructure-failed episode as a
+non-success, because it operates on the persisted `oracle_success`
+outcome and does not separately model calibration missingness. This is
+a methodology limitation in calibration semantics, not a hidden bug:
+the selector is doing exactly what its registered contract says, on
+the fields its contract exposes.
+
+**Why this did not change the 0009 selection.** The sole
+infrastructure failure occurred at `D5` / `S3`. `replacement` was
+selected at `S2` because at S2 both development variants satisfied the
+eligibility rule (D5 = 2/5, D6 = 0/5, both ≤ 2/5), and the registered
+rule deterministically chooses the **lowest** eligible stress. Since
+S3 is *above* S2, even if the S3 infrastructure episode were treated
+as missing instead of failure, `replacement` would still select S2.
+The sole infrastructure failure therefore cannot affect the recorded
+0009 stress selection, and the `supported` verdict is unaffected.
+(For completeness: this episode also does not touch the Phase B
+gates, which operate on Phase B pairs, and Phase B had zero
+infrastructure failures.)
+
+**Future calibration requirement (recorded, not implemented).**
+Future calibration experiments should distinguish infrastructure
+missingness from genuine task failure before estimating stress-specific
+baseline success. Potential future semantics may include: excluding
+infrastructure-failed calibration episodes; requiring a minimum valid
+calibration count per task/stress cell; or pre-registering
+deterministic handling/replacement of missing infrastructure
+observations. No one of these is chosen or implemented here; that is
+future experiment design.
 
 ### Raw artifacts (SHA-256, append-only)
 
