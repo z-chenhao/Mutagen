@@ -1,0 +1,129 @@
+{
+  "families": [
+    { "id": "direct_set", "development": ["D1", "D2"], "heldout": ["H1", "H2"] },
+    { "id": "conditional_set", "development": ["D3", "D4"], "heldout": ["H3", "H4"] },
+    { "id": "replacement", "development": ["D5", "D6"], "heldout": ["H5", "H6"] }
+  ],
+  "tasks": [
+    {
+      "id": "D1",
+      "name": "development_direct_set_x",
+      "family": "direct_set",
+      "split": "development",
+      "initial_state": { "x": "VOID", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "K", "y": "B" },
+      "prompt": "Set x to K. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "D2",
+      "name": "development_direct_set_y",
+      "family": "direct_set",
+      "split": "development",
+      "initial_state": { "x": "A", "y": "VOID" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "L" },
+      "prompt": "Set y to L. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H1",
+      "name": "heldout_direct_set_x",
+      "family": "direct_set",
+      "split": "heldout",
+      "initial_state": { "x": "Q", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "R", "y": "B" },
+      "prompt": "Set x to R. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H2",
+      "name": "heldout_direct_set_y",
+      "family": "direct_set",
+      "split": "heldout",
+      "initial_state": { "x": "A", "y": "M" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "N" },
+      "prompt": "Set y to N. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "D3",
+      "name": "development_conditional_set_x",
+      "family": "conditional_set",
+      "split": "development",
+      "initial_state": { "x": "EMPTY", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "K", "y": "B" },
+      "prompt": "If x is EMPTY, set x to K. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "D4",
+      "name": "development_conditional_set_y",
+      "family": "conditional_set",
+      "split": "development",
+      "initial_state": { "x": "A", "y": "LOW" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "HIGH" },
+      "prompt": "If y is LOW, set y to HIGH. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H3",
+      "name": "heldout_conditional_set_x",
+      "family": "conditional_set",
+      "split": "heldout",
+      "initial_state": { "x": "COLD", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "WARM", "y": "B" },
+      "prompt": "If x is COLD, set x to WARM. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H4",
+      "name": "heldout_conditional_set_y",
+      "family": "conditional_set",
+      "split": "heldout",
+      "initial_state": { "x": "A", "y": "OFF" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "ON" },
+      "prompt": "If y is OFF, set y to ON. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "D5",
+      "name": "development_replacement_x",
+      "family": "replacement",
+      "split": "development",
+      "initial_state": { "x": "A", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "B", "y": "B" },
+      "prompt": "Change x from A to B. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "D6",
+      "name": "development_replacement_y",
+      "family": "replacement",
+      "split": "development",
+      "initial_state": { "x": "A", "y": "C" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "D" },
+      "prompt": "Change y from C to D. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H5",
+      "name": "heldout_replacement_x",
+      "family": "replacement",
+      "split": "heldout",
+      "initial_state": { "x": "M", "y": "B" },
+      "fault_key": "x",
+      "target_state": { "x": "N", "y": "B" },
+      "prompt": "Change x from M to N. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "H6",
+      "name": "heldout_replacement_y",
+      "family": "replacement",
+      "split": "heldout",
+      "initial_state": { "x": "A", "y": "P" },
+      "fault_key": "y",
+      "target_state": { "x": "A", "y": "Q" },
+      "prompt": "Change y from P to Q. Finish when the requested external state has been achieved."
+    }
+  ]
+}

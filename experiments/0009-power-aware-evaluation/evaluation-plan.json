@@ -1,0 +1,120 @@
+{
+  "experiment_id": "0009",
+  "calibration_code_commit": "3d56c92c56eb2af7355336404a98356da6f7a5de",
+  "calibration_raw_sha256": "6dd5b832d45eb873ab9291bc139441db2ce87ae68b619a6f471c09a3b8b8ed20",
+  "baseline_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "repair_prompt_sha256": "7a4a9bcf624ee957491d9677e1ff9bf9b387951c5f2ad790037fab0c67b98be2",
+  "task_registry_sha256": "3fe9259c9efdf243a57f439932a64c7b59cc3769f2e1ffe62804edc5abef7dd8",
+  "stress_registry_sha256": "fe6a52700b30a5f951e93be20dd8b29156a584a4d3b4a0e42c3e7019b99ba047",
+  "per_family": [
+    {
+      "family": "direct_set",
+      "development_task_ids": [
+        "D1",
+        "D2"
+      ],
+      "per_task_per_stress_success_counts": [
+        {
+          "task_id": "D1",
+          "s0_success": 5,
+          "s1_success": 5,
+          "s2_success": 1,
+          "s3_success": 0,
+          "s4_success": 0
+        },
+        {
+          "task_id": "D2",
+          "s0_success": 5,
+          "s1_success": 5,
+          "s2_success": 1,
+          "s3_success": 0,
+          "s4_success": 0
+        }
+      ],
+      "s0_sanity_pass": true,
+      "selection_status": "calibrated",
+      "selected_stress": "S2",
+      "selection_reason": "selected S2: per-task baseline success at S2 = 1/5 (D1), 1/5 (D2) (lowest stress at which every development variant is ≤ 2/5; minimum intervention satisfies the pre-registered information target)"
+    },
+    {
+      "family": "conditional_set",
+      "development_task_ids": [
+        "D3",
+        "D4"
+      ],
+      "per_task_per_stress_success_counts": [
+        {
+          "task_id": "D3",
+          "s0_success": 5,
+          "s1_success": 0,
+          "s2_success": 0,
+          "s3_success": 0,
+          "s4_success": 0
+        },
+        {
+          "task_id": "D4",
+          "s0_success": 5,
+          "s1_success": 0,
+          "s2_success": 0,
+          "s3_success": 0,
+          "s4_success": 0
+        }
+      ],
+      "s0_sanity_pass": true,
+      "selection_status": "calibrated",
+      "selected_stress": "S1",
+      "selection_reason": "selected S1: per-task baseline success at S1 = 0/5 (D3), 0/5 (D4) (lowest stress at which every development variant is ≤ 2/5; minimum intervention satisfies the pre-registered information target)"
+    },
+    {
+      "family": "replacement",
+      "development_task_ids": [
+        "D5",
+        "D6"
+      ],
+      "per_task_per_stress_success_counts": [
+        {
+          "task_id": "D5",
+          "s0_success": 5,
+          "s1_success": 5,
+          "s2_success": 2,
+          "s3_success": 0,
+          "s4_success": 1
+        },
+        {
+          "task_id": "D6",
+          "s0_success": 5,
+          "s1_success": 5,
+          "s2_success": 0,
+          "s3_success": 0,
+          "s4_success": 0
+        }
+      ],
+      "s0_sanity_pass": true,
+      "selection_status": "calibrated",
+      "selected_stress": "S2",
+      "selection_reason": "selected S2: per-task baseline success at S2 = 2/5 (D5), 0/5 (D6) (lowest stress at which every development variant is ≤ 2/5; minimum intervention satisfies the pre-registered information target)"
+    }
+  ],
+  "selected_families": [
+    "direct_set",
+    "conditional_set",
+    "replacement"
+  ],
+  "calibrated_family_count": 3,
+  "planned_pairs": 48,
+  "heldout_tasks": [
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6"
+  ],
+  "repetitions_per_task": 8,
+  "min_valid_pairs": 44,
+  "min_potential_information": 12,
+  "min_actual_informative": 12,
+  "design_discordant_win_probability": 0.9,
+  "conditional_power_at_min_informative": 0.8891300222549994,
+  "proceed_to_evaluation": true
+}

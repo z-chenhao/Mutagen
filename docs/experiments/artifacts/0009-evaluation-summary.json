@@ -1,0 +1,298 @@
+{
+  "experiment_id": "0009",
+  "phase": "evaluation",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "temperature": 0.2,
+  "final_eval_commit": "3d56c92c56eb2af7355336404a98356da6f7a5de",
+  "baseline_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "repair_prompt_sha256": "7a4a9bcf624ee957491d9677e1ff9bf9b387951c5f2ad790037fab0c67b98be2",
+  "task_registry_sha256": "3fe9259c9efdf243a57f439932a64c7b59cc3769f2e1ffe62804edc5abef7dd8",
+  "calibration_raw_sha256": "6dd5b832d45eb873ab9291bc139441db2ce87ae68b619a6f471c09a3b8b8ed20",
+  "evaluation_plan_sha256": "0cedab86cb332c3b8e85df819d430ba88574baed687faab03a14f4a9bdb47427",
+  "selected_families": [
+    "direct_set",
+    "conditional_set",
+    "replacement"
+  ],
+  "heldout_tasks": [
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6"
+  ],
+  "repetitions_per_task": 8,
+  "episodes_expected": 96,
+  "episodes_total": 96,
+  "artifacts_complete": true,
+  "oracle_successes": 55,
+  "agent_failures": 17,
+  "infrastructure_failures": 0,
+  "infrastructure_failure_rate": 0.0,
+  "agent_failure_breakdown": {
+    "turn_limit": 17
+  },
+  "infrastructure_failure_breakdown": {},
+  "potential_information": {
+    "valid_pairs": 48,
+    "baseline_successes_in_valid_pairs": 7,
+    "baseline_failures_in_valid_pairs": 41,
+    "potential_information_capacity": 41,
+    "sufficient": true
+  },
+  "comparison": {
+    "baseline": "baseline",
+    "candidate": "repair",
+    "selected_families": [
+      "direct_set",
+      "conditional_set",
+      "replacement"
+    ],
+    "expected_pairs": 48,
+    "valid_pairs": 48,
+    "excluded_infrastructure_pairs": 0,
+    "missing_pairs": 0,
+    "informative_pairs": 41,
+    "wins": 41,
+    "losses": 0,
+    "ties": 7,
+    "sign_test_p": 9.094947017729282e-13,
+    "classification": "quality_improvement"
+  },
+  "per_family_diagnostics": [
+    {
+      "family": "direct_set",
+      "selected_stress": "S2",
+      "heldout_tasks": [
+        "H1",
+        "H2"
+      ],
+      "baseline_successes": 4,
+      "repair_successes": 16,
+      "wins": 12,
+      "losses": 0,
+      "ties": 4,
+      "informative_pairs": 12,
+      "development_max_success_rate_at_selected_stress": 0.2,
+      "heldout_baseline_success_rate": 0.25,
+      "transfer_delta": 0.04999999999999999
+    },
+    {
+      "family": "conditional_set",
+      "selected_stress": "S1",
+      "heldout_tasks": [
+        "H3",
+        "H4"
+      ],
+      "baseline_successes": 0,
+      "repair_successes": 16,
+      "wins": 16,
+      "losses": 0,
+      "ties": 0,
+      "informative_pairs": 16,
+      "development_max_success_rate_at_selected_stress": 0.0,
+      "heldout_baseline_success_rate": 0.0,
+      "transfer_delta": 0.0
+    },
+    {
+      "family": "replacement",
+      "selected_stress": "S2",
+      "heldout_tasks": [
+        "H5",
+        "H6"
+      ],
+      "baseline_successes": 3,
+      "repair_successes": 16,
+      "wins": 13,
+      "losses": 0,
+      "ties": 3,
+      "informative_pairs": 13,
+      "development_max_success_rate_at_selected_stress": 0.4,
+      "heldout_baseline_success_rate": 0.1875,
+      "transfer_delta": -0.21250000000000002
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "baseline",
+      "all": {
+        "episodes": 48,
+        "oracle_successes": 7,
+        "agent_failures": 17,
+        "infrastructure_failures": 0,
+        "model_requests": 393,
+        "executed_tool_calls": 362,
+        "nominal_prompt_tokens": 308839,
+        "cached_prompt_tokens": 289248,
+        "uncached_prompt_tokens": 19591,
+        "completion_tokens": 109336,
+        "reasoning_tokens": 94837,
+        "usage_reporting_requests": 393,
+        "wall_time_ms": 2052927,
+        "model_wait_time_ms": 2052922,
+        "tool_execution_time_us": 934
+      },
+      "success": {
+        "episodes": 7,
+        "oracle_successes": 7,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 68,
+        "executed_tool_calls": 61,
+        "nominal_prompt_tokens": 53308,
+        "cached_prompt_tokens": 49856,
+        "uncached_prompt_tokens": 3452,
+        "completion_tokens": 15619,
+        "reasoning_tokens": 13083,
+        "usage_reporting_requests": 68,
+        "wall_time_ms": 238004,
+        "model_wait_time_ms": 238002,
+        "tool_execution_time_us": 171
+      },
+      "failure": {
+        "episodes": 41,
+        "oracle_successes": 0,
+        "agent_failures": 17,
+        "infrastructure_failures": 0,
+        "model_requests": 325,
+        "executed_tool_calls": 301,
+        "nominal_prompt_tokens": 255531,
+        "cached_prompt_tokens": 239392,
+        "uncached_prompt_tokens": 16139,
+        "completion_tokens": 93717,
+        "reasoning_tokens": 81754,
+        "usage_reporting_requests": 325,
+        "wall_time_ms": 1814923,
+        "model_wait_time_ms": 1814920,
+        "tool_execution_time_us": 763
+      },
+      "cache": {
+        "nominal_prompt_tokens": 308839,
+        "cached_prompt_tokens": 289248,
+        "uncached_prompt_tokens": 19591,
+        "cache_hit_ratio": 0.936565653949145
+      }
+    },
+    {
+      "condition": "repair",
+      "all": {
+        "episodes": 48,
+        "oracle_successes": 48,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 338,
+        "executed_tool_calls": 290,
+        "nominal_prompt_tokens": 250580,
+        "cached_prompt_tokens": 236256,
+        "uncached_prompt_tokens": 14324,
+        "completion_tokens": 22594,
+        "reasoning_tokens": 10726,
+        "usage_reporting_requests": 338,
+        "wall_time_ms": 714953,
+        "model_wait_time_ms": 714949,
+        "tool_execution_time_us": 713
+      },
+      "success": {
+        "episodes": 48,
+        "oracle_successes": 48,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 338,
+        "executed_tool_calls": 290,
+        "nominal_prompt_tokens": 250580,
+        "cached_prompt_tokens": 236256,
+        "uncached_prompt_tokens": 14324,
+        "completion_tokens": 22594,
+        "reasoning_tokens": 10726,
+        "usage_reporting_requests": 338,
+        "wall_time_ms": 714953,
+        "model_wait_time_ms": 714949,
+        "tool_execution_time_us": 713
+      },
+      "failure": {
+        "episodes": 0,
+        "oracle_successes": 0,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 0,
+        "executed_tool_calls": 0,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 0,
+        "wall_time_ms": 0,
+        "model_wait_time_ms": 0,
+        "tool_execution_time_us": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": 250580,
+        "cached_prompt_tokens": 236256,
+        "uncached_prompt_tokens": 14324,
+        "cache_hit_ratio": 0.9428366190438183
+      }
+    }
+  ],
+  "cache_overall": {
+    "nominal_prompt_tokens": 559419,
+    "cached_prompt_tokens": 525504,
+    "uncached_prompt_tokens": 33915,
+    "cache_hit_ratio": 0.9393746011486918
+  },
+  "condition_position_cache_audit": [
+    {
+      "condition": "baseline",
+      "condition_position": 1,
+      "episodes": 24,
+      "nominal_prompt_tokens": 143832,
+      "cached_prompt_tokens": 134688,
+      "uncached_prompt_tokens": 9144,
+      "cache_hit_ratio": 0.9364258301351577
+    },
+    {
+      "condition": "baseline",
+      "condition_position": 2,
+      "episodes": 24,
+      "nominal_prompt_tokens": 165007,
+      "cached_prompt_tokens": 154560,
+      "uncached_prompt_tokens": 10447,
+      "cache_hit_ratio": 0.9366875344682347
+    },
+    {
+      "condition": "repair",
+      "condition_position": 1,
+      "episodes": 24,
+      "nominal_prompt_tokens": 125394,
+      "cached_prompt_tokens": 118656,
+      "uncached_prompt_tokens": 6738,
+      "cache_hit_ratio": 0.9462653715488779
+    },
+    {
+      "condition": "repair",
+      "condition_position": 2,
+      "episodes": 24,
+      "nominal_prompt_tokens": 125186,
+      "cached_prompt_tokens": 117600,
+      "uncached_prompt_tokens": 7586,
+      "cache_hit_ratio": 0.9394021695716773
+    }
+  ],
+  "gates": {
+    "phase_a_complete": true,
+    "calibrated_families_sufficient": true,
+    "phase_b_artifact_complete": true,
+    "infrastructure_within_threshold": true,
+    "valid_pairs_sufficient": true,
+    "potential_information_sufficient": true,
+    "actual_informative_sufficient": true
+  },
+  "conclusion": {
+    "result": "supported",
+    "reasons": [
+      "all information gates passed and repair classified quality_improvement"
+    ]
+  }
+}
