@@ -1,0 +1,9 @@
+{
+  "levels": [
+    { "id": "S0", "drop_count": 0 },
+    { "id": "S1", "drop_count": 1 },
+    { "id": "S2", "drop_count": 2 },
+    { "id": "S3", "drop_count": 3 },
+    { "id": "S4", "drop_count": 4 }
+  ]
+}
