@@ -243,4 +243,151 @@ cargo run --manifest-path ... -- verify-evaluation ...
 
 ## Results
 
-*(pending execution — see git history of this document)*
+**Status: complete.** One real execution on
+`incoai/Qwen3.8-27B-Splash` (`http://127.0.0.1:8000/v1`), temperature
+0.2, 246 episodes (150 Phase A + 96 Phase B).
+
+**Conclusion: `supported`.** All seven information gates passed and
+the exact paired sign test classified the repair candidate
+`quality_improvement`.
+
+### Calibration code-under-test commit
+
+`3d56c92c56eb2af7355336404a98356da6f7a5de`
+(exp: add power-aware transfer-validated improvement evaluation
+(0009)) — all design inputs (prompts, tasks, stress ladder, power
+constants, selectors, verifiers, this document) were committed before
+the first model request. Phase B re-verified every hash against it.
+
+### Phase A — family-level difficulty calibration (150 episodes)
+
+| Family | Dev task A | Dev task B (S0..S4 success) | S0 sanity | Selected |
+|---|---|---|---|---|
+| `direct_set` | D1: 5, 5, 1, 0, 0 | D2: 5, 5, 1, 0, 0 | pass | **S2** |
+| `conditional_set` | D3: 5, 0, 0, 0, 0 | D4: 5, 0, 0, 0, 0 | pass | **S1** |
+| `replacement` | D5: 5, 5, 2, 0, 1 | D6: 5, 5, 0, 0, 0 | pass | **S2** |
+
+All three families passed the both-variants sanity gate and calibrating
+is monotone in the ladder as expected. `direct_set` tolerates one
+silent drop on both dev tasks (5/5 at S1) and collapses at two (1/5,
+1/5); `conditional_set` collapses at the first drop (0/5, 0/5);
+`replacement` splits (D5 2/5, D6 0/5 at S2) — the family-level rule
+selected the *lowest* stress where **both** variants are ≤ 40%.
+
+- Episodes: 150/150, artifacts complete
+- Oracle successes: 55; agent failures: 47 (41 turn_limit, 5
+  parallel_tool_calls_unsupported, 1 no_final_answer); infrastructure
+  failures: 1 (0.67%, ≤ 10%)
+- Calibrated families: **3 of 3** (≥ 2 gate passes)
+- Calibration raw SHA-256:
+  `6dd5b832d45eb873ab9291bc139441db2ce87ae68b619a6f471c09a3b8b8ed20`
+- Cache hit ratio: 95.2%
+
+### Freeze
+
+Phase A artifacts + `evaluation-plan.json` committed as a single
+artifacts-only commit (verified: no source files in the freeze diff).
+Evaluation plan SHA-256 (file):
+`0cedab86cb332c3b8e85df819d430ba88574baed687faab03a14f4a9bdb47427`
+
+### Power plan (frozen)
+
+`planned_pairs = 48`, `min_valid_pairs = 44`,
+`min_potential_information = 12`, `min_actual_informative = 12`,
+`design_discordant_win_probability = 0.90`,
+`conditional_power_at_min_informative = 0.889130` (≥ 0.85),
+`repetitions_per_task = 8` (3 calibrated families → 6 held-out tasks).
+
+### Phase B — held-out evaluation (96 episodes, 48 pairs)
+
+- Episodes: 96/96; infrastructure failures: 0 (0%)
+- Valid pairs: 48/48 (≥ 44) ✓
+- **Potential information capacity: 41** (baseline failures among
+  valid pairs; ≥ 12) ✓ — the candidate-blind gate that 0008 could not
+  measure
+- Actual informative pairs: **41** (≥ 12) ✓
+- **Repair vs baseline: 41 wins / 0 losses / 7 ties — exact two-sided
+  sign test p = 9.094947017729282e-13 < 0.05 → `quality_improvement`**
+
+Per-family diagnostics (selected stress):
+
+| Family | Stress | Dev max rate | Held-out baseline | Transfer Δ | W/L/T |
+|---|---|---|---|---|---|
+| `direct_set` | S2 | 0.20 | 0.25 | +0.05 | 12 / 0 / 4 |
+| `conditional_set` | S1 | 0.00 | 0.00 | 0.00 | 16 / 0 / 0 |
+| `replacement` | S2 | 0.40 | 0.1875 | −0.21 | 13 / 0 / 3 |
+
+The transfer diagnostic is the key contrast with 0008: one family
+transferred *easier* than calibration (−0.21), one exactly (0.00), one
+slightly harder (+0.05) — and the fixed 48-pair budget still produced
+41 informative pairs because **every** family's held-out baseline
+failed ≥ 75% of the time. The two-development-task rule bought
+robustness to per-variant transfer noise that the single-task 0008 rule
+could not.
+
+Condition-level outcomes:
+
+| Condition | Episodes | Oracle success | Agent failures | Model requests | Tool calls | Nominal prompt tokens | Completion tokens |
+|---|---|---|---|---|---|---|---|
+| baseline | 48 | 7 (14.6%) | 17 (all turn_limit) | 393 | 362 | 308,839 | 109,336 |
+| repair | 48 | 48 (100%) | 0 | 338 | 290 | 250,580 | 22,594 |
+
+The repair candidate used *fewer* requests, calls, prompt tokens
+(−19%) and completion tokens (−80%) while succeeding on every episode
+— the re-read/re-write loop both fixes the silent drops and lets the
+model terminate. Overall cache hit ratio 93.9%; the
+condition-position cache audit passed (no position-biased caching).
+
+### Conclusions and claims
+
+**What this supports:** a candidate-blind, family-level,
+power-designed calibration procedure can (on this model, these
+families, this fault ladder) place held-out baselines into a
+high-failure regime whose information content exceeds the pre-
+registered detection requirement, and the objective evaluator then
+detects the controlled robustness improvement with overwhelming
+significance (p ≈ 9e-13) and zero losses. This is the first
+`supported` improvement-direction result in the series: 0007 saw the
+regression direction, 0008's gates correctly refused to over-claim,
+and 0009 shows the redesigned information gate passes *and* the
+candidate wins.
+
+**What this cannot claim:**
+
+- Generalization beyond one model, one endpoint, and three small
+  two-key state families under a silent-drop fault model;
+- That θ = 0.90 (the design assumption behind the power bound) holds
+  for other candidates — here the repair won 100% of informative
+  pairs (41/41), far above the conservative design assumption;
+- Production selection: 0009 validates the *measurement substrate*,
+  not a promotion policy. No production crate, API, or behavior
+  changed; nothing here is wired into `mutagen-core`/`mutagen-runtime`.
+- A single execution: one stochastic run per phase; no model reruns
+  were performed (the frozen design does not allow resampling the
+  conclusion).
+
+### Raw artifacts (SHA-256, append-only)
+
+| Artifact | SHA-256 |
+|---|---|
+| `docs/experiments/artifacts/0009-calibration-trajectories.jsonl` (150 records) | `6dd5b832d45eb873ab9291bc139441db2ce87ae68b619a6f471c09a3b8b8ed20` |
+| `docs/experiments/artifacts/0009-evaluation-trajectories.jsonl` (96 records) | `e380cc2b67457585cca994c5bd8ea2085f2f261b65d56f9ea634892014cdba83` |
+| `docs/experiments/artifacts/0009-calibration-summary.json` | `5710a7b92977c763310fbfa6455caa8f7a8730933f2d656b357ada24e42a2087` |
+| `docs/experiments/artifacts/0009-evaluation-summary.json` | `e5723809c531030a9269b26e17eecb4576cb2d7879b015433e9bf3f476186357` |
+| `experiments/0009-power-aware-evaluation/evaluation-plan.json` | `0cedab86cb332c3b8e85df819d430ba88574baed687faab03a14f4a9bdb47427` |
+
+Artifact verification: `verify-calibration` and `verify-evaluation`
+both PASSED (full design, cyclic order, audit, oracle, usage,
+provenance, plan deep-equality, gate recomputation, tamper checks).
+No model reruns. No production API changes. No root workspace
+dependency changes (the experiment crate is a standalone workspace;
+its `serde_json` gains the `float_roundtrip` feature so that
+summary f64 values survive file round-trips bit-exactly — a
+correctly-rounded decimal parse; see the crate `Cargo.toml`).
+
+Validation (root workspace + experiment crate):
+`cargo fmt --all -- --check` ✓, `cargo check --workspace` ✓,
+`cargo test --workspace` ✓, `cargo clippy --workspace --all-targets
+--all-features -- -D warnings` ✓, `mutagen doctor` ✓,
+experiment `self-test` ✓ (15/15 checks, all 95 unit tests),
+`mutagen-exp-0009 calibrate/evaluate/verify-*` as executed above.
