@@ -1,0 +1,129 @@
+{
+  "families": {
+    "direct_set": { "discovery": ["EV1"], "selection": ["SEL1"], "promotion": ["PRO1", "PRO2"] },
+    "conditional_set": { "discovery": ["EV2"], "selection": ["SEL2"], "promotion": ["PRO3", "PRO4"] },
+    "replacement": { "discovery": ["EV3"], "selection": ["SEL3"], "promotion": ["PRO5", "PRO6"] }
+  },
+  "tasks": [
+    {
+      "id": "EV1",
+      "name": "discovery_direct_set_x",
+      "family": "direct_set",
+      "split": "discovery",
+      "initial_state": { "x": "V_D1_0", "y": "V_KEEP_1" },
+      "fault_key": "x",
+      "target_state": { "x": "V_D1_1", "y": "V_KEEP_1" },
+      "prompt": "Set x to V_D1_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "EV2",
+      "name": "discovery_conditional_set_y",
+      "family": "conditional_set",
+      "split": "discovery",
+      "initial_state": { "x": "V_KEEP_2", "y": "V_D2_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_2", "y": "V_D2_1" },
+      "prompt": "If y is V_D2_0, set y to V_D2_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "EV3",
+      "name": "discovery_replacement_x",
+      "family": "replacement",
+      "split": "discovery",
+      "initial_state": { "x": "V_D3_0", "y": "V_KEEP_3" },
+      "fault_key": "x",
+      "target_state": { "x": "V_D3_1", "y": "V_KEEP_3" },
+      "prompt": "Change x from V_D3_0 to V_D3_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "SEL1",
+      "name": "selection_direct_set_y",
+      "family": "direct_set",
+      "split": "selection",
+      "initial_state": { "x": "V_KEEP_S1", "y": "V_S1_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_S1", "y": "V_S1_1" },
+      "prompt": "Set y to V_S1_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "SEL2",
+      "name": "selection_conditional_set_x",
+      "family": "conditional_set",
+      "split": "selection",
+      "initial_state": { "x": "V_S2_0", "y": "V_KEEP_S2" },
+      "fault_key": "x",
+      "target_state": { "x": "V_S2_1", "y": "V_KEEP_S2" },
+      "prompt": "If x is V_S2_0, set x to V_S2_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "SEL3",
+      "name": "selection_replacement_y",
+      "family": "replacement",
+      "split": "selection",
+      "initial_state": { "x": "V_KEEP_S3", "y": "V_S3_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_S3", "y": "V_S3_1" },
+      "prompt": "Change y from V_S3_0 to V_S3_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO1",
+      "name": "promotion_direct_set_x",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V_P1_0", "y": "V_KEEP_P1" },
+      "fault_key": "x",
+      "target_state": { "x": "V_P1_1", "y": "V_KEEP_P1" },
+      "prompt": "Set x to V_P1_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO2",
+      "name": "promotion_direct_set_y",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V_KEEP_P2", "y": "V_P2_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_P2", "y": "V_P2_1" },
+      "prompt": "Set y to V_P2_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO3",
+      "name": "promotion_conditional_set_x",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V_P3_0", "y": "V_KEEP_P3" },
+      "fault_key": "x",
+      "target_state": { "x": "V_P3_1", "y": "V_KEEP_P3" },
+      "prompt": "If x is V_P3_0, set x to V_P3_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO4",
+      "name": "promotion_conditional_set_y",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V_KEEP_P4", "y": "V_P4_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_P4", "y": "V_P4_1" },
+      "prompt": "If y is V_P4_0, set y to V_P4_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO5",
+      "name": "promotion_replacement_x",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V_P5_0", "y": "V_KEEP_P5" },
+      "fault_key": "x",
+      "target_state": { "x": "V_P5_1", "y": "V_KEEP_P5" },
+      "prompt": "Change x from V_P5_0 to V_P5_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "PRO6",
+      "name": "promotion_replacement_y",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V_KEEP_P6", "y": "V_P6_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V_KEEP_P6", "y": "V_P6_1" },
+      "prompt": "Change y from V_P6_0 to V_P6_1. Finish when the requested external state has been achieved."
+    }
+  ]
+}
