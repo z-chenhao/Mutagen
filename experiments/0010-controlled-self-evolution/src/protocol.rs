@@ -196,19 +196,24 @@ pub struct ChatRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "tool_choice")]
     pub tool_choice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "parallel_tool_calls")]
+    pub parallel_tool_calls: Option<bool>,
     pub temperature: f64,
 }
 
 impl ChatRequest {
     /// Agent-execution request: the registered agent temperature
-    /// (`TEMPERATURE`) and `tool_choice = "auto"`.
+    /// (`TEMPERATURE`), `tool_choice = "auto"`, and
+    /// `parallel_tool_calls = false` (OpenAI-compatible providers may
+    /// still emit multi-call responses; the kernel rejects those as an
+    /// agent-quality event, spec §15).
     pub fn agent(model: &str, messages: Vec<Message>, tools: Vec<ToolSpec>) -> Self {
         Self::with_temperature(model, messages, tools, TEMPERATURE)
     }
 
     /// Mutation-generation request: no tools, the registered mutation
-    /// temperature, `tool_choice = "auto"` (harmless: no tools are
-    /// sent).
+    /// temperature.
     pub fn mutator(model: &str, messages: Vec<Message>) -> Self {
         Self::with_temperature(model, messages, Vec::new(), MUTATOR_TEMPERATURE)
     }
@@ -219,12 +224,13 @@ impl ChatRequest {
         tools: Vec<ToolSpec>,
         temperature: f64,
     ) -> Self {
-        let tool_choice = (!tools.is_empty()).then(|| "auto".to_string());
+        let has_tools = !tools.is_empty();
         Self {
             model: model.to_string(),
             messages,
             tools,
-            tool_choice,
+            tool_choice: has_tools.then(|| "auto".to_string()),
+            parallel_tool_calls: has_tools.then(|| false),
             temperature,
         }
     }
