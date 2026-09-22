@@ -1,0 +1,49 @@
+{
+  "experiment_id": "0008",
+  "calibration_code_commit": "482522886db9df5133e268ce3b71b7d08e7a69e0",
+  "calibration_raw_sha256": "8cadd555b3b514b52fc68609a6a823dea49479efd23415f542ed99521a0d1b5d",
+  "baseline_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "repair_prompt_sha256": "7a4a9bcf624ee957491d9677e1ff9bf9b387951c5f2ad790037fab0c67b98be2",
+  "task_registry_sha256": "e3adfa5ddef4f0c22e2225df54659553b8e0499a76af6e8cbeceac2a6f40c709",
+  "stress_registry_sha256": "fe6a52700b30a5f951e93be20dd8b29156a584a4d3b4a0e42c3e7019b99ba047",
+  "per_family": [
+    {
+      "family": "direct_set",
+      "calibration_task": "C1",
+      "s0_success": 5,
+      "s1_success": 3,
+      "s2_success": 3,
+      "s3_success": 0,
+      "s4_success": 0,
+      "status": "calibrated",
+      "selected_stress": "S1",
+      "selection_reason": "selected S1: 3 / 5 baseline success (min |rate - 0.5|, lower stress on ties; band = 2 or 3 of 5)"
+    },
+    {
+      "family": "conditional_set",
+      "calibration_task": "C2",
+      "s0_success": 5,
+      "s1_success": 0,
+      "s2_success": 0,
+      "s3_success": 0,
+      "s4_success": 0,
+      "status": "uncalibrated",
+      "selected_stress": null,
+      "selection_reason": "no_stress_level_in_headroom_band: S1..S4 baseline success counts = [0, 0, 0, 0] (selectable band: 2 or 3 of 5)"
+    },
+    {
+      "family": "replacement",
+      "calibration_task": "C3",
+      "s0_success": 5,
+      "s1_success": 3,
+      "s2_success": 2,
+      "s3_success": 0,
+      "s4_success": 0,
+      "status": "calibrated",
+      "selected_stress": "S1",
+      "selection_reason": "selected S1: 3 / 5 baseline success (min |rate - 0.5|, lower stress on ties; band = 2 or 3 of 5)"
+    }
+  ],
+  "calibrated_family_count": 2,
+  "proceed_to_evaluation": true
+}

@@ -1,0 +1,646 @@
+# Experiment 0008: Difficulty-Calibrated Improvement Discrimination
+
+**Status:** complete. Pre-registered design (sections below), then
+results from one real execution on `incoai/Qwen3.8-27B-Splash`.
+**Result: `inconclusive`** — the pre-registered headroom and
+informative-pair gates both failed because the calibrated difficulty did
+not transfer from calibration tasks to held-out variants (the held-out
+baseline sat at 91.7% success, i.e. the ceiling 0007 could not name).
+The two-stage pipeline, frozen manifest, verifiers, and the new gates
+all behaved exactly as pre-registered.
+
+**Crate:** `experiments/0008-calibrated-improvement/` (standalone
+workspace; not part of the production workspace; no production API).
+
+**Model:** local OpenAI-compatible endpoint, `incoai/Qwen3.8-27B-Splash`
+(redacted endpoint `http://127.0.0.1:8000/v1`), temperature 0.2,
+`tool_choice = auto`, non-streaming, no fallback model, no API key
+required (same interface as Experiments 0006–0007).
+
+---
+
+## Prior Evidence
+
+- **0001–0005** established the synthetic replay / causality / evidence
+  substrate.
+- **0006** validated a real-model Rust-native kernel against
+  `incoai/Qwen3.8-27B-Splash` and real trajectory divergence.
+- **0007** validated an objective final-state evaluator that
+  discriminated the controlled regression candidate with
+  **0 wins / 19 losses / 5 ties — 19 informative pairs, exact
+  two-sided sign-test p = 3.814697265625e-6, classified
+  `quality_regression`** — plus cost/cache accounting. BUT its
+  improvement arm produced
+  **24 valid held-out pairs and only 1 informative (non-tied) pair**:
+  the one-shot silent-fault tasks mostly fell on the *ceiling* (baseline
+  succeeded anyway), so the evaluator could not demonstrate the
+  improvement direction.
+
+## Research Question
+
+> Can a baseline-only, pre-registered difficulty-calibration procedure
+> create sufficient held-out headroom and informative paired outcomes
+> for Mutagen's objective evaluator to detect a controlled robustness
+> improvement on a real stochastic model?
+
+Secondary questions:
+
+1. Does calibration transfer from development (calibration) tasks to
+   unseen task variants from the same registered structural family?
+2. Does an explicit informative-pair gate prevent the ceiling-effect
+   failure mode observed in Experiment 0007?
+3. What additional execution cost does the improving candidate pay for
+   the measured quality gain?
+
+## Hypothesis
+
+Pre-registered: for at least two of the three registered task families,
+baseline-only calibration will identify a fault severity that produces
+intermediate baseline success on calibration tasks. When those
+severities are frozen and transferred to unseen held-out variants, the
+held-out baseline will retain sufficient headroom and produce enough
+informative baseline/candidate_repair pairs for the repair candidate to
+achieve significantly more wins than losses under the exact paired
+sign test.
+
+No regression-control hypothesis is needed in 0008: Experiment 0007
+already demonstrated regression-direction discrimination, and 0008
+deliberately isolates the **improvement direction** (exactly two
+final-evaluation conditions: `baseline` and `candidate_repair`).
+
+## Why 0007 Was Insufficient
+
+0007's held-out repair comparison: 24 valid pairs, **1 informative
+pair** (1 win, 0 losses → p = 1.0, `quality_inconclusive`). The
+one-shot `DropFirstWrite` severity was a single fixed fault, and most
+held-out episodes landed on the ceiling (the model happened to succeed
+despite the drop) or was already resolved by baseline behavior. A valid
+pair is not an informative pair: **design completeness ≠ statistical
+information**. 0007's conclusion rules had no headroom or
+informative-pair gate, so it could only report "refuted" on a
+measurement that was mostly silent.
+
+## Valid vs Informative Pairs
+
+- **Valid pair**: a (task, repetition) pair in which neither episode
+  suffered an infrastructure failure. Agent failures (turn limit, etc.)
+  are ordinary task failures and keep the pair valid.
+- **Informative pair**: `baseline oracle_success != repair
+  oracle_success`, i.e. wins + losses. Nothing else — not trajectory
+  difference, not extra calls, not token difference, not different
+  final wording.
+- 0008 requires **both** ≥ 24 valid pairs and ≥ 12 informative pairs
+  before any directional classification.
+
+## Two-Stage Design
+
+```
+Phase A  baseline-only difficulty calibration (75 episodes)
+        |  freeze
+        v
+   Difficulty Selection Manifest (selected-difficulty.json, committed)
+        |
+        v
+Phase B  held-out baseline vs candidate_repair (48 or 72 episodes)
+```
+
+Candidate behavior **MUST NOT** influence difficulty selection. Phase A
+executes baseline only; the repair candidate is never run during
+calibration. The selected difficulties are frozen in a committed
+manifest and its SHA is recorded in every Phase B record.
+
+## Anti-Leakage
+
+The difficulty selector (`calibration.rs::select_family_stress`)
+accepts only: a family id and baseline-only calibration outcomes
+(stress id, repetition, oracle success). It has **no** argument for:
+candidate outcomes, the candidate prompt, candidate success rate,
+candidate trajectory, candidate cost, or held-out outcomes. This is
+enforced structurally (the type system) and artifact-level (calibration
+records carry `condition: "baseline"` only, and the verifier rejects
+candidate-side fields in Phase A artifacts). The frozen manifest
+contains no candidate outcome data; it carries prompt *hashes* (config
+provenance) only.
+
+## Task Families
+
+Exactly three structural families, each with 1 calibration + 2
+held-out tasks (9 registered tasks, frozen in `tasks.json`):
+
+| Family | Calibration | Held-out | Pattern |
+|---|---|---|---|
+| `direct_set` | C1: set x to A (fault key x) | H1: set y to C (key y); H2: set x to R (key x) | unconditional write |
+| `conditional_set` | C2: if x EMPTY set x to A (key x) | H3: if y B set y to C (key y); H4: if x Q set x to R (key x) | conditional write |
+| `replacement` | C3: change x from A to B (key x) | H5: change y from C to D (key y); H6: change x from M to N (key x) | value replacement |
+
+All held-out tasks were registered and committed **before** Phase A.
+No held-out task is authored or modified after observing calibration.
+
+## Stress Ladder
+
+A registered deterministic ladder of **repeated silent write drops**
+(replacing 0007's one-shot-only fault):
+
+| Level | Fault | Selected? |
+|---|---|---|
+| S0 | `Reliable` (0 dropped) | sanity control only, never a final stress |
+| S1 | `DropFirstNWrites { key, count = 1 }` | yes |
+| S2 | `DropFirstNWrites { key, count = 2 }` | yes |
+| S3 | `DropFirstNWrites { key, count = 3 }` | yes |
+| S4 | `DropFirstNWrites { key, count = 4 }` | yes |
+
+Semantics: for the registered target key, the first `count` writes
+return the identical model-visible success payload but do not mutate
+state; writes from `count+1` onward apply normally, as do all
+other-key writes. The fault is invisible to the model (no
+`applied`/`dropped`/`fault_*` field ever appears in the transcript;
+the model can only discover it via `state_read`). Every write attempt
+is persisted in an experiment-only audit log
+(`sequence, key, requested_value, applied, fault_reason,
+registered_drop_index`) that never enters the transcript.
+
+## Repair Candidate
+
+`candidate_repair` = baseline prompt + exactly one registered line:
+
+> After every successful state_write, read the same key. If the
+> observed value differs from the value you intended to write, write it
+> again and re-read it. Repeat until the value matches, but make at most
+> five state_write attempts for that requested key.
+
+Verified programmatically (`repair == baseline + registered mutation`)
+before any model call in either phase. Why five: the ladder maximum S4
+drops 4 writes, so a compliant repair has theoretical capacity
+`5 writes + 5 reads = 10 tool calls` ≤ `max_tool_calls = 16`; kernel
+limits stay `max_model_turns = 12`, `max_tool_calls = 16`
+(unchanged from 0007, not raised).
+
+Both prompts (and `tasks.json`, `stress-levels.json`, this document)
+are committed in the calibration code-under-test commit, **before any
+real model request**. The repair prompt's SHA-256 must still match
+after calibration; Phase B refuses to start otherwise.
+
+## Objective Oracle
+
+Carried over from 0007: an episode succeeds iff (1) it reached normal
+completion and (2) the final external state exactly matches the
+registered target state (unchanged keys must retain their expected
+values). Agent failures are ordinary task failures; infrastructure
+failures are excluded from pairs. The oracle's input type has no field
+for condition, prompt, candidate identity, **stress level**, cost, or
+trajectory style — it judges the outcome, not how it was produced.
+
+## Calibration Rule
+
+Phase A = 3 families × 5 stress levels × 5 repetitions = **75
+baseline-only episodes**, in the registered cyclic stress order
+(rep r, position p → level `(r+p−2) mod 5`), so every stress occurs
+once in every execution position per family.
+
+- **Reliable sanity gate:** S0 baseline success ≥ 4/5, else the family
+  is `calibration_invalid` and gets no selection.
+- **Headroom band:** among S1..S4, a level is eligible iff baseline
+  success is exactly 2/5 or 3/5 (40% or 60% — deliberately
+  intermediate). 0/5, 1/5, 4/5, 5/5 are never selectable.
+- **Selection:** among eligible levels, minimize `|rate − 0.5|`; 2/5
+  and 3/5 are equidistant, so ties break to the **lower** stress level.
+  No human judgment; the pure function is unit-tested over its edge
+  cases.
+
+## Family Selection Rule → Manifest
+
+`selected-difficulty.json` (the Difficulty Selection Manifest)
+contains: `experiment_id`, `calibration_code_commit`,
+`calibration_raw_sha256`, frozen prompt/registry hashes, per-family
+`s0_success..s4_success` + `selected_stress` + `selection_reason`,
+`calibrated_family_count`, and `proceed_to_evaluation`. It is
+recomputable byte-for-byte from the raw calibration artifact by the
+verifier.
+
+## Minimum Calibrated-Family Gate
+
+Proceed to Phase B only if **≥ 2 of 3** families calibrate. Otherwise
+the experiment concludes `inconclusive`, the calibration artifacts are
+committed, and nothing is tuned.
+
+## Held-Out Design
+
+For each calibrated family, both registered held-out tasks are
+evaluated under **that family's frozen selected stress**. Exactly
+**6 repetitions** per (held-out task × condition), with the registered
+alternating condition order per rep:
+`[baseline, repair], [repair, baseline], …` — each condition is first
+exactly 3 times and second exactly 3 times. Expected size is derived
+from the committed manifest: 2 families → 48 episodes; 3 families → 72.
+
+## Headroom Gate (NEW)
+
+Before interpreting improvement significance: the pooled selected-family
+held-out **baseline** success rate must lie in `[0.20, 0.80]`.
+Outside the band → `inconclusive` (not refuted). This broad
+information-availability gate protects against floor/ceiling regimes
+and is the direct correction of 0007. The threshold is not re-tuned
+after seeing data.
+
+## Valid-Pair Gate
+
+After infrastructure exclusions, **≥ 24 valid held-out pairs** are
+required (24 for two calibrated families; 36 possible for three).
+Otherwise `inconclusive`.
+
+## Informative-Pair Gate (NEW)
+
+**≥ 12 informative pairs** (wins + losses) are required before
+directional classification, **even if** many pairs are valid. This
+explicitly closes 0007's methodology hole. Informative is defined
+strictly as discordant oracle success (see "Valid vs Informative
+Pairs"); it is never redefined after results.
+
+## Exact Sign Test
+
+Identical to 0007: two-sided exact sign test on `n = wins + losses`
+non-tied pairs, `k = min(wins, losses)`,
+`p = min(1, 2 · Σ_{i=0..k} C(n,i) · 0.5ⁿ)`, α = 0.05. No statistics
+crate. Classification: `quality_improvement` iff wins > losses and
+p ≤ 0.05; `quality_regression` iff losses > wins and p ≤ 0.05; else
+`quality_inconclusive`. The primary test **pools all selected
+held-out families**; per-family win/loss values are diagnostic only and
+never the basis of a significance claim.
+
+## Pre-Registered Conclusion Rule
+
+`inconclusive` if ANY: Phase A artifact incomplete; calibrated
+families < 2; Phase B artifact incomplete; infrastructure failure rate
+> 10%; held-out baseline success outside [0.20, 0.80]; valid pairs <
+24; informative pairs < 12.
+
+`supported` iff all gates pass AND repair = `quality_improvement`.
+`refuted` iff all gates pass but repair ≠ `quality_improvement`.
+
+This encodes the 0008 core distinction: *insufficient measurement
+information* → **inconclusive**; *sufficient information, no expected
+improvement* → **refuted**. The rule is not modified after results.
+
+## Usage / Cache Accounting
+
+Per-request provider-reported usage (`prompt_tokens`,
+`cached_prompt_tokens`, `uncached_prompt_tokens`, `completion_tokens`,
+`reasoning_tokens`, `finish_reason`) is stored as `null` when not
+reported; reasoning *content* is not captured. Quality and cost are
+never combined into a utility score. Reported separately: quality
+direction, model requests, tool calls, nominal/cached/uncached prompt
+tokens, completion tokens, reasoning tokens, wall time, and failure
+consumption (per-condition `failure` cost block). Phase A cache audit
+is by stress level × execution position; Phase B by condition ×
+condition position. Cache is taken from provider-reported counts only,
+never inferred from latency. Primary quality is **not** cost-adjusted:
+if repair costs more and still improves, that is a quality result; the
+quality/cost trade-off is a later selection-policy question, not 0008's.
+
+## Evidence We Can Claim (if supported)
+
+- That a baseline-only, pre-registered difficulty-calibration
+  procedure — on these three registered structural families, this
+  state-manipulation environment, and this model — selected stress
+  levels without observing the candidate, and that after freezing and
+  transferring them to unseen variants, the Mutagen objective evaluator
+  retained sufficient held-out headroom and informative paired outcomes
+  to classify the registered controlled robustness improvement under
+  the exact paired sign test.
+
+## Evidence We Cannot Claim
+
+- General agent evaluation solved; automatic evolution solved.
+- That difficulty calibration generalizes to other environments,
+  models, or task families.
+- That the selection policy is production-ready or that any of the
+  experimental code (kernel, oracle, stats, calibration, manifest)
+  should enter production crates.
+- Any quality/cost trade-off decision.
+
+---
+
+# Results
+
+*Filled in by the execution commits below; result sections are the only
+permitted workspace changes between the calibration and final commits.*
+
+## Phase A — Calibration
+
+### Calibration Integrity
+
+75/75 records executed (3 families × 5 stress levels × 5
+repetitions), in the registered cyclic stress order; 0 infrastructure
+failures; `verify-calibration` **PASSED** (all records + summary +
+manifest recomputed and deep-compared from the raw artifact).
+Oracle successes: 26/75; agent failures: 12
+(`turn_limit` / `no_final_answer` / `parallel_tool_calls_unsupported`);
+389 model requests, 324 executed tool calls.
+
+| Family | S0 | S1 | S2 | S3 | S4 | Selected | Reason |
+|---|---|---|---|---|---|---|---|
+| direct_set | 5/5 | 3/5 | 3/5 | 0/5 | 0/5 | **S1** | tie at \|0.6−0.5\| = \|0.4−0.5\|... see below |
+| conditional_set | 5/5 | 0/5 | 0/5 | 0/5 | 0/5 | — | nothing in the 2–3/5 band |
+| replacement | 5/5 | 3/5 | 2/5 | 0/5 | 0/5 | **S1** | 3/5 vs 2/5 equidistant from 0.5 → lower stress |
+
+(Note for `direct_set`: the eligible levels were S1 (3/5 = 0.6) and
+S2 (3/5 = 0.6); both are distance 0.1 from 0.5, so the lower-stress
+tie-break selected S1.)
+
+### Reliable Sanity Gate
+
+All three families passed: S0 = 5/5 ≥ 4/5 for every family. No family
+was `calibration_invalid`.
+
+### Selected / Uncalibrated Families
+
+- Calibrated (2/3): `direct_set` → **S1**, `replacement` → **S1**.
+- Uncalibrated (1/3): `conditional_set` — S1..S4 all 0/5; the
+  pre-registered band is 2 or 3 of 5, so no level was eligible.
+  Minimum calibrated-family gate: **passed** (2 ≥ 2).
+  `proceed_to_evaluation = true`.
+
+Interesting real-world finding: `conditional_set` (C2: "If x is EMPTY,
+set x to A") collapsed to 0/5 at *every* fault severity ≥ 1 — even the
+single dropped write of S1 defeated it completely, while the
+unconditional `direct_set` family still succeeded 3/5 at S1. The
+calibration procedure surfaced a genuinely family-specific difficulty
+structure that a one-shot fixed fault (0007) could not.
+
+### Calibration Provenance
+
+- Calibration code-under-test commit: `482522886db9df5133e268ce3b71b7d08e7a69e0`
+- Calibration raw SHA-256: `8cadd555b3b514b52fc68609a6a823dea49479efd23415f542ed99521a0d1b5d`
+- Selection manifest SHA-256: `55b707d014ac9df5ea7aa83904809169c1d65d53d5975b106b6f83d22451d3bc`
+- Final-evaluation execution commit: `f9d3484a37d1d99c6ad0aafd4433feccbe2cd139`
+- Phase A costs (provider-reported): 389 requests; nominal prompt
+  tokens 270,250 (cached 255,968 → hit ratio 0.947); completion
+  tokens 122,229; reasoning tokens 109,253 (content not captured).
+  Stress×position cache audit: 15 rows in the summary (first
+  positions show lower hit ratios, as expected for fresh conversations).
+
+## Phase B — Evaluation
+
+### Evaluation Integrity
+
+48/48 records executed — exactly the manifest-derived expectation
+(2 calibrated families × 2 held-out tasks × 2 conditions × 6
+repetitions); 0 infrastructure failures; the repair prompt, baseline
+prompt, task registry, and manifest hashes all matched the committed
+frozen values; `verify-evaluation` **PASSED**.
+
+### Held-Out Baseline Headroom
+
+| | episodes | successes | rate |
+|---|---|---|---|
+| baseline | 24 | 22 | **0.9167** |
+| candidate_repair | 24 | 24 | 1.0000 |
+
+**Gate FAILED**: 0.9167 is outside the pre-registered band
+[0.20, 0.80] — the held-out baseline is on the ceiling. This is the
+exact failure mode 0007 exhibited silently; 0008's gate names it.
+
+### Valid Pair Count / Informative Pair Count
+
+- Valid pairs: **24 / 24** (0 infrastructure-excluded, 0 missing) — gate passed.
+- Informative pairs (discordant oracle success): **2** — gate FAILED
+  (required ≥ 12). 22 of 24 pairs were ties (both conditions
+  succeeded).
+
+### Repair vs Baseline
+
+| wins | losses | ties | non-ties | exact two-sided sign-test p | classification |
+|---|---|---|---|---|---|
+| 2 | 0 | 22 | 2 | 0.5 | `quality_inconclusive` |
+
+The repair candidate won both pairs it could win (the two episodes
+where baseline failed) and lost none — directionally suggestive of a
+robustness improvement, but with 2 informative pairs there is no
+statistical evidence in either direction. (Contrast with 0007: 1
+informative pair, no gates, no explanation.)
+
+### Per-Family Diagnostic (diagnostic only — not significance basis)
+
+| Family | Selected stress | Calibration baseline rate | Held-out baseline | Repair | Wins / Losses / Ties |
+|---|---|---|---|---|---|
+| direct_set | S1 | 0.60 | 10/12 = 0.833 | 12/12 = 1.0 | 2 / 0 / 10 |
+| replacement | S1 | 0.60 | 12/12 = 1.0 | 12/12 = 1.0 | 0 / 0 / 12 |
+
+### Difficulty Transfer
+
+| Family | Calibration Baseline Rate | Held-Out Baseline Rate | Transfer Error |
+|---|---|---|---|
+| direct_set | 0.60 | 0.833 | 0.233 |
+| replacement | 0.60 | 1.000 | 0.400 |
+
+**The calibrated difficulty did not transfer.** Both families' held-out
+baseline rates moved from 0.60 (calibration) to 0.83–1.00 (held-out):
+the calibration task within each family (C1/C3) happened to be harder
+for this model than the family's held-out variants (H1/H2, H5/H6) at
+the same frozen stress. The selection rule did exactly what it was
+registered to do — it calibrated *the calibration task*. It cannot see
+held-out difficulty, and the transfer assumption failed.
+
+### Cost / Usage & Cache Position Audit
+
+| Condition | Episodes | Requests | Tool calls | Nominal prompt tok. | Cached tok. | Completion tok. | Reasoning tok. |
+|---|---|---|---|---|---|---|---|
+| baseline | 24 | 129 | 105 | 81,933 | 77,216 | 9,179 | 5,048 |
+| candidate_repair | 24 | 132 | 108 | 90,644 | 85,504 | 8,566 | 4,193 |
+
+Overall cache hit ratio 0.943; condition-position audit (4 rows) in the
+summary shows expected prompt-prefix caching in both positions. Usage
+was provider-reported on 100% of requests; quality was **not**
+cost-adjusted. The repair candidate here spent slightly *more* prompt
+tokens (longer verification loops where it retried) and slightly fewer
+completion tokens; this trade-off is reported, not scored.
+
+### Failure Resource Consumption
+
+0 agent failures and 0 infrastructure failures in Phase B — no failure
+consumption to report. (Phase A, for reference: 12 agent failures
+consumed 135 requests / 133 tool calls — the model's retry loops ran
+to the 12-turn limit on the harder stressed episodes.)
+
+## Experiment Conclusion
+
+**`inconclusive`** — by the pre-registered rule, not by judgment:
+
+- Headroom gate FAILED (held-out baseline 0.9167 ∉ [0.20, 0.80]).
+- Informative-pair gate FAILED (2 < 12).
+- All other gates passed (Phase A complete, 2 calibrated families,
+  Phase B complete, 0% infra failures, 24 valid pairs).
+
+Interpretation:
+
+1. The **procedure** worked end-to-end exactly as pre-registered:
+   baseline-only calibration → pure selection rule → frozen, verified
+   manifest → no-tuning checks → frozen-stress held-out evaluation →
+   independent recomputation of summary and manifest → explicit
+   gate-cited conclusion. Nothing was tuned after seeing data.
+2. The **hypothesis failed on its transfer clause**: baseline-only
+   calibration found intermediate difficulty on *calibration* tasks
+   (3/5 for two families — the first clause held) but the model's
+   held-out behavior did not track its calibration behavior, so the
+   evaluator had no headroom to discriminate the improvement.
+3. The new gates converted 0007's silent ceiling effect into an
+   explicit, documented, mechanically-detected `inconclusive` with
+   named reasons — the methodology gap is closed even though this
+   particular execution could not reach a directional conclusion.
+4. The repair candidate was never harmful (0 losses) and captured both
+   recoverable pairs — suggestive, but 2 informative pairs is not
+   evidence.
+
+## Post-Hoc Methodology Limitation — Calibration Target vs Statistical Power
+
+> **This section was written AFTER execution.** It is a post-hoc
+> methodology audit. It does **not** alter the pre-registration, the
+> selection rule, the gates, or the verdict; and it is a methodology
+> limitation, **not** an implementation bug. No 0008 code, constant,
+> or artifact was (or is) changed on its basis.
+
+The 0008 selector treats a calibration success rate of `2/5 = 40%` and
+`3/5 = 60%` as equally eligible (both are exactly 0.1 from 0.5), with
+the registered tie-break preferring the **lower stress** level — which,
+for a monotone drop ladder, can favor the *3/5* side over the harder
+*2/5* side.
+
+Now consider the downstream Phase B design. When exactly two families
+calibrate:
+
+```
+2 families × 2 held-out tasks × 6 repetitions = 24 paired comparisons
+```
+
+The pre-registered informative-pair gate requires
+
+```
+wins + losses ≥ 12
+```
+
+For the intended controlled repair mutation, the best-case (monotonic,
+no-harm) pattern is:
+
+- baseline fails → repair succeeds = **win**
+- baseline succeeds → repair succeeds = **tie**
+- losses = 0
+
+Under that idealized no-harm repair, `informative_pairs = baseline
+failures`. The gate therefore requires:
+
+```
+informative_pairs ≥ 12
+  ⇒ baseline failures ≥ 12 (of 24 pairs)
+  ⇒ baseline successes ≤ 12 (of 24 pairs)
+  ⇒ held-out baseline success rate ≤ 0.50
+```
+
+**The contradiction with a 60% calibration target.** If calibration
+had transferred *perfectly* at `3/5 = 0.60` baseline success, the
+24-pair Phase B design would contain ≈ `24 × 0.40 = 9.6` expected
+baseline failures. Even an ideal repair that fixes **every** baseline
+failure and causes **zero** losses would then yield ≈ 9–10 wins, 0
+losses, 14–15 ties — **≈ 9–10 informative pairs, still below the ≥ 12
+gate.** In other words: with only 24 Phase-B pairs, selecting a
+difficulty corresponding to ≈ 60% baseline success can be structurally
+underpowered relative to the pre-registered informative-pair gate,
+even under perfect calibration transfer and a perfectly monotonic
+repair candidate.
+
+**What this does and does not explain.** The observed run was
+*primarily* information-limited because the selected calibration
+difficulty **did not transfer** to held-out tasks (held-out baseline
+22/24 = 91.7% — far above both 50% and 60%), i.e. the transfer
+failure / ceiling dominates the actual outcome. Separately, even if
+transfer had been substantially better, the 3/5 side of the current
+calibration band could still leave the 24-pair design unable to
+satisfy its own information gate. Both are measurement-design issues;
+neither justifies any quality conclusion about the repair mutation.
+
+**Deeper design lesson.** Difficulty calibration must not be chosen
+independently of downstream statistical power. Future evaluation
+design should derive the desired calibration region *from* the
+downstream informative-pair requirement and evaluation budget, rather
+than selecting "roughly 50% difficulty" first and checking power
+afterward:
+
+```
+required informative pairs
+        ↓
+required discordance / baseline failures
+        ↓
+target baseline-success region
+        ↓
+required number of pairs
+        ↓
+calibration selection rule
+```
+
+**Candidate questions for the next pre-registration (no answers
+chosen, nothing implemented here):**
+
+1. Should the calibration target be ≤ 50% baseline success?
+2. Should the pair budget increase when only two families calibrate?
+3. Should difficulty selection optimize estimated informative-pair
+   yield?
+4. Should each family have multiple calibration tasks to estimate
+   transfer?
+5. Should calibration use a power-aware target rather than
+   `|rate − 0.5|`?
+
+## Evidence We Can Claim (actual)
+
+1. Baseline-only, candidate-blind calibration + frozen verified
+   manifest + held-out execution **works end-to-end** on a real
+   stochastic LLM (75 + 48 episodes, 0 infrastructure failures,
+   verifiers recompute summary and manifest byte-for-byte from the raw
+   artifacts).
+2. The evaluator **correctly detects when held-out headroom is
+   insufficient** (0.9167 ∉ [0.20, 0.80] → named gate failure).
+3. The evaluator **correctly detects when the informative-pair count
+   is insufficient** (2 < 12 → named gate failure), converting a
+   ceiling-collapsed evaluation into a mechanically identified
+   `inconclusive` instead of forcing a directional
+   supported/refuted interpretation.
+4. Calibration-task difficulty **did not transfer adequately** to
+   held-out variants in this run (0.60 → 0.83 / 1.00).
+5. The registered 24-pair / ≥ 12-informative design has a **post-hoc
+   power-alignment limitation** when the selector chooses the
+   3/5 = 60%-success side of its calibration band (see the Post-Hoc
+   Methodology Limitation section).
+
+## Evidence We Cannot Claim (actual)
+
+- **No quality conclusion** about the `candidate_repair` mutation —
+  2 informative pairs is not evidence in either direction; there is
+  **no evidence that repair is generally better**.
+- **No evidence that difficulty calibration transfers** from
+  calibration tasks to unseen variants for this model (or that the
+  0008 design would transfer for other models/environments).
+- **No evidence that the current 2/5–3/5 calibration band is
+  statistically sufficient** for the 24-pair, ≥ 12-informative gate.
+- **No self-evolution readiness claim yet**: the evaluator has not
+  accumulated enough evidence to support the first mutation →
+  evaluation → selection experiment for the improvement direction on
+  this model.
+- **No production promotion**: nothing in this experiment is a
+  production API; the sign test can be implementation-correct while
+  the evaluation *design* is underpowered, and the experiment
+  artifacts stay experiment-only.
+
+## Architectural Question (documented, not answered)
+
+Has the evaluator accumulated enough evidence to support the first
+mutation → evaluation → selection experiment? **Not yet** for the
+improvement direction on this model. The observed run was primarily
+information-limited because the selected calibration difficulty did
+not transfer to held-out tasks, producing a 91.7% baseline ceiling.
+Separately, post-hoc power analysis revealed that the registered
+calibration target and the informative-pair threshold are not fully
+aligned for the 24-pair two-family case (see the Post-Hoc Methodology
+Limitation section). Both are measurement-design issues; neither
+justifies a quality conclusion about the repair mutation, and neither
+means the statistics (the exact sign test) are at fault. A future
+Experiment 0009 must be a new pre-registration built around the
+candidate questions above — none of which is answered or implemented
+here — and 0008's design is closed.
