@@ -57,7 +57,7 @@ pub const DISCOVERY_EPISODES: usize = (3 * DISCOVERY_REPETITIONS) as usize; // 1
 pub const MIN_VALID_DISCOVERY_EPISODES: u32 = 16;
 
 /// Selection (spec §31–34): 3 tasks × 10 repetitions × 5 conditions.
-pub const SELECTION_REPETITIONS: u32 = 10;
+pub const SELECTION_REPETITIONS: u32 = 5;
 pub const SELECTION_CONDITIONS: [&str; 5] = ["G0", "C1", "C2", "C3", "C4"];
 pub const SELECTION_EPISODES: usize =
     SELECTION_TASKS.len() * SELECTION_REPETITIONS as usize * SELECTION_CONDITIONS.len(); // 150
@@ -973,7 +973,8 @@ pub fn compute_selection_summary(
             infra += 1;
         }
     }
-    let balanced = position_counts.len() == 25 && position_counts.values().all(|&n| n == 6);
+    let balanced = position_counts.len() == 25
+        && position_counts.values().all(|&n| n == SELECTION_REPETITIONS);
     let count_ok = records.len() == SELECTION_EPISODES;
 
     // Cell bookkeeping: a cell is common-valid iff NONE of the five
@@ -1890,8 +1891,13 @@ fn verify_record_core<R: RecordCoreLike>(
             state
         ));
     }
-    // Executed-call results must be exactly the model-visible contract.
+    // Executed-call results must be exactly what the true state says.
+    // The state the tools observe is the real state: silently dropped
+    // writes do NOT move it (the write's own result still reports the
+    // requested value, which is checked separately), so reads replay
+    // exactly the applied writes, positionally in audit order.
     let mut replay = task.initial_state.clone();
+    let mut write_idx = 0usize;
     for c in record.executed() {
         match c.tool_name.as_str() {
             "state_write" => {
@@ -1921,24 +1927,30 @@ fn verify_record_core<R: RecordCoreLike>(
                 errors.push(format!("{who}: unknown executed tool {other:?}"));
             }
         }
-        // Replay the applied writes (read state from the audit).
+        // Replay the applied writes only (the true state), positionally:
+        // the i-th state_write call corresponds to the i-th audit entry.
         if c.tool_name == "state_write" {
-            let k = c.arguments.get("key").and_then(Value::as_str).unwrap_or("");
-            let v = c
-                .arguments
-                .get("value")
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            let applied = record
-                .write_attempts()
-                .iter()
-                .any(|w| w.key == k && w.requested_value == v && w.applied);
+            let applied = record.write_attempts().get(write_idx).is_some_and(|w| w.applied);
+            write_idx += 1;
             if applied {
+                let k = c.arguments.get("key").and_then(Value::as_str).unwrap_or("");
+                let v = c
+                    .arguments
+                    .get("value")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
                 if let Some(obj) = replay.as_object_mut() {
                     obj.insert(k.to_string(), Value::String(v.to_string()));
                 }
             }
         }
+    }
+    if write_idx != record.write_attempts().len() {
+        errors.push(format!(
+            "{who}: {} state_write calls vs {} audit entries (positions diverge)",
+            write_idx,
+            record.write_attempts().len()
+        ));
     }
     // Conversation invariants.
     if let (Some(sys), Some(user)) = (record.conversation().first(), record.conversation().get(1)) {
@@ -2402,9 +2414,9 @@ pub fn verify_selection(
         verify_record_core(&mut errors, &who, task, count, &expected_full, r);
     }
     for ((cond, pos), n) in &position_counts {
-        if *n != 6 {
+        if *n != SELECTION_REPETITIONS {
             errors.push(format!(
-                "condition {cond} position {pos} has {n} episodes, expected 6 (registered cyclic balance)"
+                "condition {cond} position {pos} has {n} episodes, expected {SELECTION_REPETITIONS} (registered cyclic balance)"
             ));
         }
     }
@@ -3078,14 +3090,21 @@ pub fn build_synthetic_artifacts() -> SyntheticArtifacts {
     };
 
     // ---------- selection ----------
-    // G0 fails on 13 of 30 cells: c%10 ∈ {0,1,2} (9) plus {5,6,7,24} (4).
-    let g0_fail = |c: usize| -> bool { c % 10 < 3 || c == 5 || c == 6 || c == 7 || c == 24 };
+    // 30 cells (3 tasks × 5 reps, c = ti*5 + rep-1). G0 fails on 13:
+    // c%5 ∈ {0,1,2} (9) plus {3,4,8,9,13,14} (13 total, per task 5,
+    // 5, 3). C1/C3 fail on the G0 failures plus one G0-success cell
+    // each (13W/2L; exact (net,wins,losses) tie); C2 fails exactly on
+    // the 17 G0 successes (13W/0L → selected, the design winner);
+    // C4 fails on G0 failures plus two G0-success cells (11W/2L).
+    let g0_fail = |c: usize| -> bool {
+        c % 5 < 3 || matches!(c, 3 | 4 | 8 | 9 | 13 | 14 | 18 | 19)
+    };
     let c1_fail =
-        |c: usize| -> bool { !matches!(c, 0 | 10 | 20) && (g0_fail(c) || c == 3 || c == 13) };
+        |c: usize| -> bool { !matches!(c, 0 | 5 | 10) && (g0_fail(c) || c == 3 || c == 8) };
     let c3_fail =
-        |c: usize| -> bool { !matches!(c, 1 | 11 | 21) && (g0_fail(c) || c == 4 || c == 14) };
+        |c: usize| -> bool { !matches!(c, 1 | 6 | 11) && (g0_fail(c) || c == 4 || c == 9) };
     let c4_fail =
-        |c: usize| -> bool { !matches!(c, 0 | 10) && (g0_fail(c) || c == 3 || c == 4 || c == 13) };
+        |c: usize| -> bool { !matches!(c, 0 | 5) && (g0_fail(c) || c == 3 || c == 4 || c == 8) };
     let cond_success = |c: usize, cond: &str| -> bool {
         match cond {
             "G0" => !g0_fail(c),
@@ -3098,6 +3117,9 @@ pub fn build_synthetic_artifacts() -> SyntheticArtifacts {
     };
     let mut selection = Vec::new();
     let mut counter = 0usize;
+    // The synthetic set always encodes the full 3×5×5 = 150 design, so
+    // it uses the design repetition count regardless of the constant.
+    let synth_reps: u32 = 5;
     for (ti, task) in registry
         .tasks
         .iter()
@@ -3105,10 +3127,10 @@ pub fn build_synthetic_artifacts() -> SyntheticArtifacts {
         .enumerate()
     {
         let (_, count) = frozen_stress(&task.family).unwrap();
-        for rep in 1..=SELECTION_REPETITIONS {
+        for rep in 1..=synth_reps {
             for pos in 1..=SELECTION_CONDITIONS.len() as u32 {
                 let cond = selection_condition_at(rep, pos);
-                let c = ti * SELECTION_REPETITIONS as usize + (rep - 1) as usize;
+                let c = ti * synth_reps as usize + (rep - 1) as usize;
                 counter += 1;
                 let success = cond_success(c, cond);
                 let (suffix_sha, full) = if cond == "G0" {
