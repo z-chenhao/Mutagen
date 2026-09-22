@@ -26,9 +26,11 @@ required (same interface as Experiments 0006–0007).
 - **0006** validated a real-model Rust-native kernel against
   `incoai/Qwen3.8-27B-Splash` and real trajectory divergence.
 - **0007** validated an objective final-state evaluator that
-  discriminates a controlled regression candidate
-  (`quality_regression`, p ≈ 3.9e-5, 18/18 held-out pairs informative)
-  and cost/cache accounting. BUT its improvement arm produced
+  discriminated the controlled regression candidate with
+  **0 wins / 19 losses / 5 ties — 19 informative pairs, exact
+  two-sided sign-test p = 3.814697265625e-6, classified
+  `quality_regression`** — plus cost/cache accounting. BUT its
+  improvement arm produced
   **24 valid held-out pairs and only 1 informative (non-tied) pair**:
   the one-shot silent-fault tasks mostly fell on the *ceiling* (baseline
   succeeded anyway), so the evaluator could not demonstrate the
@@ -489,32 +491,156 @@ Interpretation:
    recoverable pairs — suggestive, but 2 informative pairs is not
    evidence.
 
+## Post-Hoc Methodology Limitation — Calibration Target vs Statistical Power
+
+> **This section was written AFTER execution.** It is a post-hoc
+> methodology audit. It does **not** alter the pre-registration, the
+> selection rule, the gates, or the verdict; and it is a methodology
+> limitation, **not** an implementation bug. No 0008 code, constant,
+> or artifact was (or is) changed on its basis.
+
+The 0008 selector treats a calibration success rate of `2/5 = 40%` and
+`3/5 = 60%` as equally eligible (both are exactly 0.1 from 0.5), with
+the registered tie-break preferring the **lower stress** level — which,
+for a monotone drop ladder, can favor the *3/5* side over the harder
+*2/5* side.
+
+Now consider the downstream Phase B design. When exactly two families
+calibrate:
+
+```
+2 families × 2 held-out tasks × 6 repetitions = 24 paired comparisons
+```
+
+The pre-registered informative-pair gate requires
+
+```
+wins + losses ≥ 12
+```
+
+For the intended controlled repair mutation, the best-case (monotonic,
+no-harm) pattern is:
+
+- baseline fails → repair succeeds = **win**
+- baseline succeeds → repair succeeds = **tie**
+- losses = 0
+
+Under that idealized no-harm repair, `informative_pairs = baseline
+failures`. The gate therefore requires:
+
+```
+informative_pairs ≥ 12
+  ⇒ baseline failures ≥ 12 (of 24 pairs)
+  ⇒ baseline successes ≤ 12 (of 24 pairs)
+  ⇒ held-out baseline success rate ≤ 0.50
+```
+
+**The contradiction with a 60% calibration target.** If calibration
+had transferred *perfectly* at `3/5 = 0.60` baseline success, the
+24-pair Phase B design would contain ≈ `24 × 0.40 = 9.6` expected
+baseline failures. Even an ideal repair that fixes **every** baseline
+failure and causes **zero** losses would then yield ≈ 9–10 wins, 0
+losses, 14–15 ties — **≈ 9–10 informative pairs, still below the ≥ 12
+gate.** In other words: with only 24 Phase-B pairs, selecting a
+difficulty corresponding to ≈ 60% baseline success can be structurally
+underpowered relative to the pre-registered informative-pair gate,
+even under perfect calibration transfer and a perfectly monotonic
+repair candidate.
+
+**What this does and does not explain.** The observed run was
+*primarily* information-limited because the selected calibration
+difficulty **did not transfer** to held-out tasks (held-out baseline
+22/24 = 91.7% — far above both 50% and 60%), i.e. the transfer
+failure / ceiling dominates the actual outcome. Separately, even if
+transfer had been substantially better, the 3/5 side of the current
+calibration band could still leave the 24-pair design unable to
+satisfy its own information gate. Both are measurement-design issues;
+neither justifies any quality conclusion about the repair mutation.
+
+**Deeper design lesson.** Difficulty calibration must not be chosen
+independently of downstream statistical power. Future evaluation
+design should derive the desired calibration region *from* the
+downstream informative-pair requirement and evaluation budget, rather
+than selecting "roughly 50% difficulty" first and checking power
+afterward:
+
+```
+required informative pairs
+        ↓
+required discordance / baseline failures
+        ↓
+target baseline-success region
+        ↓
+required number of pairs
+        ↓
+calibration selection rule
+```
+
+**Candidate questions for the next pre-registration (no answers
+chosen, nothing implemented here):**
+
+1. Should the calibration target be ≤ 50% baseline success?
+2. Should the pair budget increase when only two families calibrate?
+3. Should difficulty selection optimize estimated informative-pair
+   yield?
+4. Should each family have multiple calibration tasks to estimate
+   transfer?
+5. Should calibration use a power-aware target rather than
+   `|rate − 0.5|`?
+
 ## Evidence We Can Claim (actual)
 
-That a baseline-only, pre-registered, difficulty-calibration pipeline
-— frozen manifest, independent verifiers, headroom and informative-pair
-gates — runs cleanly end-to-end on a real stochastic LLM and correctly
-classifies a ceiling-collapsed measurement as `inconclusive` instead of
-silently reporting a direction, on these three registered families,
-this state-manipulation environment, and this model.
+1. Baseline-only, candidate-blind calibration + frozen verified
+   manifest + held-out execution **works end-to-end** on a real
+   stochastic LLM (75 + 48 episodes, 0 infrastructure failures,
+   verifiers recompute summary and manifest byte-for-byte from the raw
+   artifacts).
+2. The evaluator **correctly detects when held-out headroom is
+   insufficient** (0.9167 ∉ [0.20, 0.80] → named gate failure).
+3. The evaluator **correctly detects when the informative-pair count
+   is insufficient** (2 < 12 → named gate failure), converting a
+   ceiling-collapsed evaluation into a mechanically identified
+   `inconclusive` instead of forcing a directional
+   supported/refuted interpretation.
+4. Calibration-task difficulty **did not transfer adequately** to
+   held-out variants in this run (0.60 → 0.83 / 1.00).
+5. The registered 24-pair / ≥ 12-informative design has a **post-hoc
+   power-alignment limitation** when the selector chooses the
+   3/5 = 60%-success side of its calibration band (see the Post-Hoc
+   Methodology Limitation section).
 
 ## Evidence We Cannot Claim (actual)
 
-Any quality conclusion about the `candidate_repair` mutation (2
-informative pairs), any claim that difficulty calibration transfers to
-unseen variants for this model, and any claim that the 0008 design will
-produce `supported`/`refuted` verdicts for other models or
-environments. The headroom-transfer failure is a property of the
-calibration-task choice, not of the gates.
+- **No quality conclusion** about the `candidate_repair` mutation —
+  2 informative pairs is not evidence in either direction; there is
+  **no evidence that repair is generally better**.
+- **No evidence that difficulty calibration transfers** from
+  calibration tasks to unseen variants for this model (or that the
+  0008 design would transfer for other models/environments).
+- **No evidence that the current 2/5–3/5 calibration band is
+  statistically sufficient** for the 24-pair, ≥ 12-informative gate.
+- **No self-evolution readiness claim yet**: the evaluator has not
+  accumulated enough evidence to support the first mutation →
+  evaluation → selection experiment for the improvement direction on
+  this model.
+- **No production promotion**: nothing in this experiment is a
+  production API; the sign test can be implementation-correct while
+  the evaluation *design* is underpowered, and the experiment
+  artifacts stay experiment-only.
 
 ## Architectural Question (documented, not answered)
 
 Has the evaluator accumulated enough evidence to support the first
 mutation → evaluation → selection experiment? **Not yet** for the
-improvement direction on this model: the bottleneck is now precisely
-diagnosed — *measurement information* (difficulty transfer / headroom),
-not statistics or plumbing. A future Experiment 0009 must be a new
-pre-registration: e.g. harder base tasks (multi-key writes, chained
-dependencies), a deeper fault ladder, or a second calibration task per
-family used to validate transfer *before* freezing — each is a distinct
-hypothesis, none is implemented here, and 0008's design is closed.
+improvement direction on this model. The observed run was primarily
+information-limited because the selected calibration difficulty did
+not transfer to held-out tasks, producing a 91.7% baseline ceiling.
+Separately, post-hoc power analysis revealed that the registered
+calibration target and the informative-pair threshold are not fully
+aligned for the 24-pair two-family case (see the Post-Hoc Methodology
+Limitation section). Both are measurement-design issues; neither
+justifies a quality conclusion about the repair mutation, and neither
+means the statistics (the exact sign test) are at fault. A future
+Experiment 0009 must be a new pre-registration built around the
+candidate questions above — none of which is answered or implemented
+here — and 0008's design is closed.
