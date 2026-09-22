@@ -64,14 +64,14 @@ fn parse_flags(args: &[String], required: &[&str]) -> Result<Flags, String> {
     let mut i = 0;
     while i < args.len() {
         let known = [
-                "--trajectories",
-                "--summary",
-                "--selection",
-                "--code-commit",
-                "--endpoint",
-            ]
-            .iter()
-            .any(|r| *r == args[i]);
+            "--trajectories",
+            "--summary",
+            "--selection",
+            "--code-commit",
+            "--endpoint",
+        ]
+        .iter()
+        .any(|r| *r == args[i]);
         if !known {
             return Err(format!("unknown argument {:?}", args[i]));
         }
@@ -323,12 +323,26 @@ mod tests {
                 "--endpoint".into(),
                 "http://redacted/v1".into(),
             ],
-            &["--trajectories", "--summary", "--selection", "--code-commit"],
+            &[
+                "--trajectories",
+                "--summary",
+                "--selection",
+                "--code-commit",
+            ],
         )
         .unwrap();
-        assert_eq!(flags.trajectories.as_deref(), Some(std::path::Path::new("t.jsonl")));
-        assert_eq!(flags.summary.as_deref(), Some(std::path::Path::new("s.json")));
-        assert_eq!(flags.selection.as_deref(), Some(std::path::Path::new("m.json")));
+        assert_eq!(
+            flags.trajectories.as_deref(),
+            Some(std::path::Path::new("t.jsonl"))
+        );
+        assert_eq!(
+            flags.summary.as_deref(),
+            Some(std::path::Path::new("s.json"))
+        );
+        assert_eq!(
+            flags.selection.as_deref(),
+            Some(std::path::Path::new("m.json"))
+        );
         assert_eq!(flags.code_commit.as_deref(), Some("a".repeat(40).as_str()));
         assert_eq!(flags.endpoint.as_deref(), Some("http://redacted/v1"));
     }
@@ -337,7 +351,12 @@ mod tests {
     fn parser_reports_missing_required_flag() {
         let err = parse_flags(
             &["--trajectories".into(), "t.jsonl".into()],
-            &["--trajectories", "--summary", "--selection", "--code-commit"],
+            &[
+                "--trajectories",
+                "--summary",
+                "--selection",
+                "--code-commit",
+            ],
         )
         .unwrap_err();
         assert!(err.contains("--summary"), "{err}");
