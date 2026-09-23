@@ -1,0 +1,14 @@
+{
+  "stage": "C",
+  "run_id": "0012-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0012-mutation-generation.json",
+      "sha256": "aea55d3f795f190bdde01b6e535ddf117eee24d4a5ba33d3c04a448b19c3707f"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/candidate-pool.json",
+      "sha256": "7eceeb4f3841bc5cf2b85bbaec90c769d281b4f1d7decbf187fa551732cc6559"
+    }
+  ]
+}
