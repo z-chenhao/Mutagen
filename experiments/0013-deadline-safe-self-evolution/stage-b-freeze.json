@@ -1,0 +1,18 @@
+{
+  "stage": "B",
+  "run_id": "0013-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0013-discovery-summary.json",
+      "sha256": "117043495fca704fdcdb071faa714818c2061b3cd4a76514cfcc00435605355d"
+    },
+    {
+      "path": "docs/experiments/artifacts/0013-discovery-trajectories.jsonl",
+      "sha256": "f0e99b04eae79d5c55aa516459c5b96532149d8c1c37182b0c163d4031e107e6"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/mutation-input.json",
+      "sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8"
+    }
+  ]
+}
