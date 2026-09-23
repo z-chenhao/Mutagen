@@ -1,0 +1,93 @@
+{
+  "experiment_id": "0011",
+  "run_id": "0011-r1",
+  "code_under_test_commit": "1b2cc38edb3a85ebfdb9ae66c138ba0b078e34e9",
+  "frozen_design_sha256": "db494301b0d902b500b9b89e3d38779ca8f4c69a22a771e5e7d45601764a1db0",
+  "files": [
+    {
+      "path": "docs/experiments/0011-confirmatory-self-evolution.md",
+      "sha256": "54ae41a9542c017d115e9e862cd6e5bd3dec3484c4f713ab6c1b6c0264983f58"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/Cargo.lock",
+      "sha256": "8487f864b52c15dc5a0c0e70d01c35e4003ed004d93e93eae3091dd85a3bf3f6"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/Cargo.toml",
+      "sha256": "625b280c867ba19e068e6d97977da86af65d625d0a2127d6d7c0cb43825f5525"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/design.json",
+      "sha256": "7e557444b171faa76367b6095f098bde547f8b98b8fb31640907fbd02b3e6825"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/prompts/incumbent.md",
+      "sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/prompts/mutator.md",
+      "sha256": "f49733682033cefc4f2448572f9199fc78193397aa3ef98e967e2ac5d25471b1"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/experiment.rs",
+      "sha256": "87bc7ba1701d3458e65ed31d5470c4e0d2282e381aee81595e4fa308d3c5a857"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/freeze.rs",
+      "sha256": "92caff07810cd8998f187da7e872f95b30580a5202a7d72cdf5be16ef1e2266c"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/kernel.rs",
+      "sha256": "452ce2e235e2d20f0a10a55ea4da30fbb1b94e145c1b5b1e56521eaa051a0079"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/main.rs",
+      "sha256": "e5a433ececc85bb1fe45e32f9eb4f13eac70e586d50e4baf5f71f49fdb63ab50"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/model.rs",
+      "sha256": "a32e0c6e2aa22e14b95c9df2502bbdf69cc5c720cdda8d29a5fd313ecec5a56a"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/mutation.rs",
+      "sha256": "f25a44eccd27894f256c6ff7f92be491b8eec37d710155fe8bbaa0d6391442aa"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/oracle.rs",
+      "sha256": "08f5afb5b45d06dbe886e02077073a632baf55c46a3488ae4ed8de17acb39f8e"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/protocol.rs",
+      "sha256": "499314508d3d3726c23117573410a648d0add90761f4284eac2572df39de31f2"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/selection.rs",
+      "sha256": "5edd0f18d51193f2326d8d88b5deb0eae9b1706f839efa14089fd9e21aca2b34"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/stats.rs",
+      "sha256": "13bb44407c0bf4c1d5c189e3b5ab6793280e03ca19dd52cf84171a458225e223"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/tools.rs",
+      "sha256": "ce85c955478b7f0429556d44497c9739b236e4675161172b428d66c34e0a217a"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/src/trace.rs",
+      "sha256": "9708efa4b24f8b6fe11cfa1edf7f37554510fb0bde2b8c32716ca7a3c699b7ce"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/stress-profile.json",
+      "sha256": "69d2b6190b60c98dfdcc2390811a2f287047cbf88ccdd287534dc94cabe66f84"
+    },
+    {
+      "path": "experiments/0011-confirmatory-self-evolution/tasks.json",
+      "sha256": "b19378fe3dfa99a2bcd00d43a02648a661c7d05db0b31e5f5799d937c7a38251"
+    }
+  ],
+  "design_sha256": "7e557444b171faa76367b6095f098bde547f8b98b8fb31640907fbd02b3e6825",
+  "tasks_sha256": "b19378fe3dfa99a2bcd00d43a02648a661c7d05db0b31e5f5799d937c7a38251",
+  "stress_profile_sha256": "69d2b6190b60c98dfdcc2390811a2f287047cbf88ccdd287534dc94cabe66f84",
+  "incumbent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "mutator_prompt_sha256": "f49733682033cefc4f2448572f9199fc78193397aa3ef98e967e2ac5d25471b1"
+}

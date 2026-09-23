@@ -1,0 +1,41 @@
+# Standalone experiment workspace.
+#
+# This crate deliberately does NOT join the production workspace (the
+# empty `[workspace]` table below detaches it from the repository root
+# workspace). Nothing here is a production API and nothing here is
+# promoted to `mutagen-core` / `mutagen-runtime` / `mutagen-cli`.
+#
+# Duplication is deliberate: Experiment 0011 copies the minimal
+# kernel/protocol/model/tools/oracle/stats infrastructure validated in
+# Experiments 0006/0008/0009/0010 instead of depending on either
+# production crate. Experiment 0011 is the CLEAN CONFIRMATORY RERUN of
+# the controlled self-evolution loop: discovery evidence → bounded
+# prompt-mutation generation → frozen five-condition selection
+# tournament → frozen two-condition promotion test on disjoint task
+# splits, under a mechanically enforced source-freeze protocol
+# (`src/freeze.rs` + `run-manifest.json`) and a single machine-readable
+# design authority (`design.json`). The `mutation`, `selection`, and
+# `freeze` modules are 0011-specific and are NOT production
+# abstractions.
+[package]
+name = "mutagen-exp-0011"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Serialization for the OpenAI-compatible chat protocol and artifacts.
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+# Synchronous HTTP client for the single model endpoint.
+# Synchronous on purpose: no async runtime is introduced.
+ureq = { version = "2", features = ["json"] }
+# SHA-256 for design / prompt / task-suite / artifact provenance hashes.
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
