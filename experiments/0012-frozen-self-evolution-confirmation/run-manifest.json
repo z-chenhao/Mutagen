@@ -1,0 +1,97 @@
+{
+  "experiment_id": "0012",
+  "run_id": "0012-r1",
+  "code_under_test_commit": "1d763b8fa034031b02c08fd81ebfb665724dfdce",
+  "frozen_design_sha256": "447ce20ef797dacc838975ccddd6e52f96d05ee9b01312e81de757cf4079dcda",
+  "files": [
+    {
+      "path": "docs/experiments/0012-frozen-self-evolution-confirmation.md",
+      "sha256": "83d5c4fa5254e42902ecca5633c900f06c278fbe8d68705c1176b595b9dc191f"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/Cargo.lock",
+      "sha256": "33124d66aedcb263140aa4f31b99dab6631837161a5ab75e441f348ba0577bf0"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/Cargo.toml",
+      "sha256": "2f100f01293c59afd75b2e15f023780bbc4d5c419318e33cdaf7c628a064b32d"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/design.json",
+      "sha256": "7b58dfb2c7e5a7dfc497a532b1431c98e96cd8a5e63b7d3fb2bb0cac65034b80"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/prompts/incumbent.md",
+      "sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/prompts/mutator.md",
+      "sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/experiment.rs",
+      "sha256": "445c452b3711d5deda765dcd5cadb9fd9fa8abd092f110baf017d863e35a3178"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/freeze.rs",
+      "sha256": "ab7e47c0a3f059bbb3743ed044db45d81a0a30f3edc3088de45bbe763cacc33c"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/kernel.rs",
+      "sha256": "8b0a30e842cc74a110b217a100f76c8725305cad613e6ae1bad1b9e08b20a04d"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/main.rs",
+      "sha256": "fd2982bdaa53e7e9ac08cb2eaa19897a6c9a939e1f5ef46962dce5c1f456214a"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/model.rs",
+      "sha256": "ed5cee283e24ab44d8c9999269278e23327ce821968ffcbab98a0855361751b8"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/mutation.rs",
+      "sha256": "b8af1f5d9bed136353f04c1b8f90fd52cd14300c5608514bf8e5f7ddf0973e26"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/oracle.rs",
+      "sha256": "08f5afb5b45d06dbe886e02077073a632baf55c46a3488ae4ed8de17acb39f8e"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/protocol.rs",
+      "sha256": "c24aa38f1d0790927bf278adae6b8ffdd3844a6f4ce216dd001fcf9fddba7587"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/selection.rs",
+      "sha256": "07343f7214c1f3ef66590c50268a7e382d9c8c1da83a326af8b3cdd9d5668fe9"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/stage_freeze.rs",
+      "sha256": "c8d82be3eb2d6fd884a679134a2e7febc97f042b07fc63cadfb41fdc2f203853"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/stats.rs",
+      "sha256": "13bb44407c0bf4c1d5c189e3b5ab6793280e03ca19dd52cf84171a458225e223"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/tools.rs",
+      "sha256": "ce85c955478b7f0429556d44497c9739b236e4675161172b428d66c34e0a217a"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/src/trace.rs",
+      "sha256": "ed37247bdb175ac879e0585a8628972f871618bac9599513221d873a1739eb84"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/stress-profile.json",
+      "sha256": "e1c40145f57764b55ee501f528f6cf6d7986a785a49689830669da974a4d524d"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/tasks.json",
+      "sha256": "54b7279118425770e36684e2de7aef3ff2547176c94a4968ac4e2fd9f34cdebc"
+    }
+  ],
+  "design_sha256": "7b58dfb2c7e5a7dfc497a532b1431c98e96cd8a5e63b7d3fb2bb0cac65034b80",
+  "tasks_sha256": "54b7279118425770e36684e2de7aef3ff2547176c94a4968ac4e2fd9f34cdebc",
+  "stress_profile_sha256": "e1c40145f57764b55ee501f528f6cf6d7986a785a49689830669da974a4d524d",
+  "incumbent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "mutator_prompt_sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b"
+}

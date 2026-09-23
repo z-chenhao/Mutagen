@@ -1,0 +1,90 @@
+{
+  "experiment_id": "0012",
+  "run_id": "0012-r1",
+  "run_manifest_sha256": "ee7b4b9c34172fe020619c9e799173b3de0408e7db11bc12b9c10dc3afbae9f6",
+  "frozen_design_sha256": "447ce20ef797dacc838975ccddd6e52f96d05ee9b01312e81de757cf4079dcda",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "temperature": 0.7,
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "code_under_test_commit": "1d763b8fa034031b02c08fd81ebfb665724dfdce",
+  "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+  "mutator_prompt_sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "attempt_count": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "raw_response": "\n\n{\n  \"candidates\": [\n    {\n      \"suffix\": \"After any state_write that affects a task-required key, read that key back; finish only when the read shows the requested value, not when the write returns ok.\",\n      \"rationale\": \"Several episodes claimed success after a write returned ok while the next read still showed the old value, so explicit read-back confirmation is needed.\"\n    },\n    {\n      \"suffix\": \"If a read after a required write does not show the requested value, repeat the same write to the same key and read again; do not finalize until the read matches.\",\n      \"rationale\": \"Writes sometimes reported success but the following read still showed the previous value, and successful episodes recovered by retrying the same requested write.\"\n    },\n    {\n      \"suffix\": \"Access only state keys explicitly named in the task condition or requested change; do not use other keys for diagnostics or persistence tricks.\",\n      \"rationale\": \"Episodes that inspected or modified unrelated keys often ended with those keys changed or wasted turns, while successful episodes preserved unrequested keys.\"\n    },\n    {\n      \"suffix\": \"For conditional tasks, read the condition key first and write only if the observed value satisfies the condition; if it does not, finish without changes.\",\n      \"rationale\": \"Conditional tasks require observing the condition before acting, and avoiding writes when the condition is false prevents unnecessary state changes.\"\n    }\n  ]\n}",
+      "structurally_valid": true,
+      "validation_errors": [],
+      "prompt_tokens": 42113,
+      "cached_prompt_tokens": 0,
+      "completion_tokens": 12544,
+      "reasoning_tokens": 12231,
+      "wall_time_ms": 439195
+    }
+  ],
+  "mutation_generation_complete": true,
+  "accepted_pool": {
+    "experiment_id": "0012",
+    "generation": 1,
+    "parent_id": "G0",
+    "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+    "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+    "candidates": [
+      {
+        "candidate_id": "C1",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+        "suffix": "After any state_write that affects a task-required key, read that key back; finish only when the read shows the requested value, not when the write returns ok.",
+        "suffix_sha256": "ffe740ba2ab039b466bcaed39268a611536debe5dabb7cd17bdcb18451870a17",
+        "full_prompt_sha256": "7e9f2ab5731bc5c4146b6de39d453c0452bd1dd4eecf9f789665b7e9a4ae1704",
+        "rationale": "Several episodes claimed success after a write returned ok while the next read still showed the old value, so explicit read-back confirmation is needed.",
+        "word_count": 27,
+        "byte_count": 159
+      },
+      {
+        "candidate_id": "C2",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+        "suffix": "If a read after a required write does not show the requested value, repeat the same write to the same key and read again; do not finalize until the read matches.",
+        "suffix_sha256": "c70992cfdae5e6f48b0ba5296ce09f786e224ea08bdfc0def4b035c6707ea6da",
+        "full_prompt_sha256": "0eb2003834e3eefbd4741d5b612fcf7d5589e6ff7fd49318c9b163e19854ab33",
+        "rationale": "Writes sometimes reported success but the following read still showed the previous value, and successful episodes recovered by retrying the same requested write.",
+        "word_count": 31,
+        "byte_count": 161
+      },
+      {
+        "candidate_id": "C3",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+        "suffix": "Access only state keys explicitly named in the task condition or requested change; do not use other keys for diagnostics or persistence tricks.",
+        "suffix_sha256": "872f10d5816734fe56a67eb603401af1423280e032cb8b98bac942370e88d651",
+        "full_prompt_sha256": "554bce824105326b287303e371332bfbe53968c9d0c89ba27d56c4c52167409e",
+        "rationale": "Episodes that inspected or modified unrelated keys often ended with those keys changed or wasted turns, while successful episodes preserved unrequested keys.",
+        "word_count": 23,
+        "byte_count": 143
+      },
+      {
+        "candidate_id": "C4",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+        "suffix": "For conditional tasks, read the condition key first and write only if the observed value satisfies the condition; if it does not, finish without changes.",
+        "suffix_sha256": "d3518cdd6b6e583f3dc5bd66fec01095a0809c8721a27739e127748f6dcc239c",
+        "full_prompt_sha256": "77a2d601143befb65544031540bdaea678ba884af1df16552ee57e9874c47bf9",
+        "rationale": "Conditional tasks require observing the condition before acting, and avoiding writes when the condition is false prevents unnecessary state changes.",
+        "word_count": 25,
+        "byte_count": 153
+      }
+    ]
+  },
+  "wall_time_ms": 439195
+}
