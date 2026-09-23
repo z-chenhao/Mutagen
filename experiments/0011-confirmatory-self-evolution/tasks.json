@@ -1,0 +1,130 @@
+{
+  "experiment_id": "0011",
+  "families": {
+    "direct_set": { "discovery": ["E11A"], "selection": ["S11A"], "promotion": ["P11A", "P11B"] },
+    "conditional_set": { "discovery": ["E11B"], "selection": ["S11B"], "promotion": ["P11C", "P11D"] },
+    "replacement": { "discovery": ["E11C"], "selection": ["S11C"], "promotion": ["P11E", "P11F"] }
+  },
+  "tasks": [
+    {
+      "id": "E11A",
+      "name": "discovery_direct_set_x",
+      "family": "direct_set",
+      "split": "discovery",
+      "initial_state": { "x": "V11_DA_0", "y": "V11_KEEP_DA" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_DA_1", "y": "V11_KEEP_DA" },
+      "prompt": "Set x to V11_DA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "E11B",
+      "name": "discovery_conditional_set_y",
+      "family": "conditional_set",
+      "split": "discovery",
+      "initial_state": { "x": "V11_KEEP_DB", "y": "V11_DB_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_DB", "y": "V11_DB_1" },
+      "prompt": "If y is V11_DB_0, set y to V11_DB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "E11C",
+      "name": "discovery_replacement_x",
+      "family": "replacement",
+      "split": "discovery",
+      "initial_state": { "x": "V11_DC_0", "y": "V11_KEEP_DC" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_DC_1", "y": "V11_KEEP_DC" },
+      "prompt": "Change x from V11_DC_0 to V11_DC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S11A",
+      "name": "selection_direct_set_y",
+      "family": "direct_set",
+      "split": "selection",
+      "initial_state": { "x": "V11_KEEP_SA", "y": "V11_SA_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_SA", "y": "V11_SA_1" },
+      "prompt": "Set y to V11_SA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S11B",
+      "name": "selection_conditional_set_x",
+      "family": "conditional_set",
+      "split": "selection",
+      "initial_state": { "x": "V11_SB_0", "y": "V11_KEEP_SB" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_SB_1", "y": "V11_KEEP_SB" },
+      "prompt": "If x is V11_SB_0, set x to V11_SB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S11C",
+      "name": "selection_replacement_y",
+      "family": "replacement",
+      "split": "selection",
+      "initial_state": { "x": "V11_KEEP_SC", "y": "V11_SC_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_SC", "y": "V11_SC_1" },
+      "prompt": "Change y from V11_SC_0 to V11_SC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11A",
+      "name": "promotion_direct_set_x",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V11_PA_0", "y": "V11_KEEP_PA" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_PA_1", "y": "V11_KEEP_PA" },
+      "prompt": "Set x to V11_PA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11B",
+      "name": "promotion_direct_set_y",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V11_KEEP_PB", "y": "V11_PB_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_PB", "y": "V11_PB_1" },
+      "prompt": "Set y to V11_PB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11C",
+      "name": "promotion_conditional_set_x",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V11_PC_0", "y": "V11_KEEP_PC" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_PC_1", "y": "V11_KEEP_PC" },
+      "prompt": "If x is V11_PC_0, set x to V11_PC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11D",
+      "name": "promotion_conditional_set_y",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V11_KEEP_PD", "y": "V11_PD_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_PD", "y": "V11_PD_1" },
+      "prompt": "If y is V11_PD_0, set y to V11_PD_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11E",
+      "name": "promotion_replacement_x",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V11_PE_0", "y": "V11_KEEP_PE" },
+      "fault_key": "x",
+      "target_state": { "x": "V11_PE_1", "y": "V11_KEEP_PE" },
+      "prompt": "Change x from V11_PE_0 to V11_PE_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P11F",
+      "name": "promotion_replacement_y",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V11_KEEP_PF", "y": "V11_PF_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V11_KEEP_PF", "y": "V11_PF_1" },
+      "prompt": "Change y from V11_PF_0 to V11_PF_1. Finish when the requested external state has been achieved."
+    }
+  ]
+}
