@@ -1,0 +1,18 @@
+{
+  "stage": "B",
+  "run_id": "0012-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0012-discovery-summary.json",
+      "sha256": "e18374b2e98032ea185afa5a229bc2b386e1da5cf0bfebfa8bdb4a9b2b71c3b8"
+    },
+    {
+      "path": "docs/experiments/artifacts/0012-discovery-trajectories.jsonl",
+      "sha256": "da886bbcb22634b7936dbde26f641ce22e056e8f79300f4fe49904e10aac2bdf"
+    },
+    {
+      "path": "experiments/0012-frozen-self-evolution-confirmation/mutation-input.json",
+      "sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a"
+    }
+  ]
+}
