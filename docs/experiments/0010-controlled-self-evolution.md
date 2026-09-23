@@ -2,9 +2,17 @@
 
 ## Status
 
-Complete (this section was the only part updated after the
-pre-registration freeze; all other sections are frozen at the code
-commit referenced below).
+Complete — **formal verdict: INCONCLUSIVE** due to a protocol integrity
+violation (executable source was changed after real model execution had
+already begun, violating the registered Stage-A source-freeze rule).
+
+Genuine **exploratory** mutation / selection / promotion evidence is retained
+and clearly labeled as *post-protocol-violation*; it is **not** a formal
+`supported` verdict. (This Status section, the pre-registration-inconsistency
+note, Results, Conclusion, the new *Protocol Failure Analysis* and *Formal
+Verdict vs Exploratory Evidence* sections, and Follow-up were updated in the
+scientific-record correction. No source code, prompt, task, or raw/summary
+artifact was modified; all remain byte-identical to their stage commits.)
 
 ## Hypothesis
 
@@ -65,6 +73,18 @@ verification failure. The pool is frozen after the generation stage.
 | discovery | 3 (one per family) | 18 (6 reps) | behavior only; seeds the mutation input |
 | selection | 3 (one per family) | 150 (5 reps × 5 conditions) | candidate comparison |
 | promotion | 6 (two per family) | 96 (4 reps × 2 conditions) | confirmatory, untouched |
+
+> **Pre-registration / implementation inconsistency (Stage A).** The
+> registered selection design was 3 tasks × **10** repetitions × 5 conditions
+> = 150 episodes, and the Stage-A *code* correctly set
+> `SELECTION_REPETITIONS = 10`. But the *prose* table above (and the
+> promotion row, which says “4 reps” against a code constant of 8) is
+> arithmetically inconsistent with the registered totals. The Stage-A
+> registration was therefore **not** internally perfect. This mismatch was
+> discovered during execution and is the proximate trigger of the protocol
+> violation documented in *Protocol Failure Analysis* (it is what the
+> mistaken `551a339` commit “corrected” the code toward before `37219e0`
+> restored it). It is recorded here, not concealed.
 
 Family = {direct_set, conditional_set, replacement} (carried over from
 Experiment 0009, same state schema, same task shapes, **new task
@@ -151,6 +171,13 @@ Stage-freeze commit protocol (A → E, as executed):
 No source change after A; a bug found mid-run makes the run
 inconclusive, not a re-target.
 
+This rule is **authoritative** and was **not** satisfied: three post-A
+commits (`df2a046`, `551a339`, `37219e0`) changed executable source after the
+discovery and mutation-generation stages had already made real model requests.
+Per the rule, that renders the run **inconclusive** (not `refuted`) — see
+*Protocol Failure Analysis*. The rule is quoted verbatim, not reinterpreted.
+A bug found mid-run makes the run inconclusive, not a re-target.
+
 ## Commands
 
 ```
@@ -171,10 +198,25 @@ See Results.
 
 ## Results
 
+> **Read this before the per-stage numbers.** The formal Experiment-0010
+> verdict is **INCONCLUSIVE**: the registered source-freeze rule ("no source
+> change after A") was violated after real model execution had begun
+> (discovery + mutation generation had already made model requests) by the
+> post-A commits `df2a046` / `551a339` / `37219e0`. Therefore the selection
+> and promotion stages below do **not** belong to a single fully-frozen
+> pre-registered execution. The numbers are retained and are genuine, but the
+> **selection** and **promotion** results are *exploratory / post-protocol
+> evidence*, not a formal `supported` result. (Final artifact verification
+> still passes **under the corrected executable** — that is a weaker claim
+> than “the original A→E run satisfies the registered freeze protocol”.)
+
 Model `incoai/Qwen3.8-27B-Splash` via the local endpoint (redacted). One
 unseeded run, end to end. Per-stage artifacts are committed at each
-stage-freeze commit (B–E); the `verify-*` verifiers all report `PASSED` and
-the offline `self-test` (35 checks + 27 tamper cases) is green.
+stage-freeze commit (B–E); the `verify-*` verifiers all report `PASSED`
+**under the final (corrected) executable**, and the offline `self-test`
+(35 checks + 27 tamper cases) is green. Verifier passes confirm the final
+artifacts are internally consistent with the final code; they do not erase
+the historical freeze violation.
 
 ### Discovery (stage B) — 18 episodes, incumbent G0 only
 
@@ -188,29 +230,63 @@ the offline `self-test` (35 checks + 27 tamper cases) is green.
 
 - 4 bounded append-only prompt-suffix candidates C1–C4 (≤800 bytes each),
   same model, no known-repair seeding. Pool sha256 frozen
-  `b2840fed…c788c`.
+  `b2840fed…c788c`. Accepted in the **first** valid generation attempt
+  (one mutator call; no retry was needed for the accepted pool).
+
+  **Status: valid exploratory evidence.** This stage ran *before* any of the
+  later source fixes, and its evidence packet (the mutation input) remained
+  leakage-controlled, so the protocol violation does **not** invalidate it.
+  - Mutation-input leakage audit: **no** `DropFirstNWrites`, `fault_reason`,
+    `registered_drop_index`, the fault-audit `applied` *field*, `SEL1–3`,
+    `PRO1–6`, or the known Experiment-0009 repair instruction. (The only
+    textual occurrence of the word “applied” is the model’s own discovery
+    reasoning — “*a transformation applied*” — which is legitimate
+    model-visible evidence, not the hidden audit field.)
+  - The mutator system prompt did **not** explicitly instruct read-after-write /
+    verify / retry / handle-silent-failure. The accepted C1 nevertheless
+    states exactly that policy → the generator **independently inferred** a
+    write/read-back/retry policy from model-visible discovery trajectories.
+  - This is *exploratory evidence of autonomous mutation discovery*, **not**
+    a confirmatory self-evolution result.
 
 ### Selection (stage D) — 150 episodes, 3×10×5 balanced conditions
+
+> **Label: exploratory selection result under the corrected post-A
+> executable.** This tournament ran after the `37219e0` source fix, so it is
+> *not* part of a fully pre-registered frozen A→E run. The numbers are
+> genuine and are retained.
 
 - 150 episodes (3 tasks × 10 repetitions × 5 conditions, cyclic rotation);
   2 infrastructure failures → **28/30 common-valid cells**, 23 G0 failures
   (potential information).
 - Frozen lexicographic rule (net margin > 0 required; ordinal tie-break;
-  cost not an input) selects **C1**: 19 wins / 0 losses / 9 ties, net **+19**.
-  Ranking **C1 > C3 > C4 > C2** (C3 14W/2L/+12, C4 6W/2L/+4, C2 6W/3L/+3).
-- All integrity gates pass; C1 displaces G0 → promotion authorized.
-- Cost: ~1238 model requests, ~1124 executed tool calls.
+  cost not an input) selects **C1**:
+  - **C1: 19W / 0L / 9T, net +19** (selected)
+  - C3: 14W / 2L / 12T, net +12
+  - C4: 6W / 2L / 20T, net +4
+  - C2: 6W / 3L / 19T, net +3
+  - Ranking **C1 > C3 > C4 > C2**; C1 displaces G0 → promotion authorized.
+- Structural integrity gates pass *under the corrected executable*;
+  cost excluded from the rule. Cost: ~1238 model requests, ~1124 executed
+  tool calls.
 
 ### Promotion (stage E) — 96 episodes, G0 vs C1 on the held-out split
 
+> **Label: strong independent exploratory validation — not the formal 0010
+> verdict.** Promotion used **only** G0 and C1 on a promotion split that never
+> appeared in the mutation input, and the other candidates did not touch it —
+> so it is an *independent* held-out check of the generated candidate. But
+> because the executable changed after Stage A, this result **cannot** upgrade
+> Experiment 0010’s formal conclusion from **inconclusive**.
+
 - 6 promotion tasks × 8 repetitions × 2 conditions (G0 + C1), disjoint from
   discovery/selection.
-- 48 valid pairs (0 infrastructure failures), 37 potential information,
-  35 informative pairs.
-- C1 vs G0: **35 wins / 0 losses / 13 ties**. Exact two-sided sign test
-  **p = 5.82e-11** (< 0.05). Classification **quality_improvement**.
-- G0 succeeds 11/48 pairs; C1 succeeds 46/48.
-- All gates pass. Cost: ~730 model requests, ~640 executed tool calls.
+- **48 valid pairs** (0 infrastructure failures); G0 succeeds **11/48**,
+  C1 succeeds **46/48**; 37 potential information, 35 informative pairs.
+- C1 vs G0: **35 wins / 0 losses / 13 ties**.
+- Exact two-sided sign test **p = 2 / 2^35 = 5.820766091346741e-11**
+  (< 0.05). Classification **quality_improvement**.
+- Cost: ~730 model requests, ~640 executed tool calls.
 
 ### Selected candidate (C1) — the one evolvable artifact
 
@@ -220,35 +296,123 @@ the offline `self-test` (35 checks + 27 tamper cases) is green.
 
 (sha256 `0101d618…76f2ad`; full prompt sha256 `e4ff2994…4712d3`.)
 
+## Protocol Failure Analysis
+
+This experiment’s scientific rule is stricter than software correctness:
+**after the first real model request, executable changes require a new run
+identity.** The three post-A source changes below are documented not to defend
+them but to establish that the registered freeze was violated:
+
+- **P1 — agent request semantics** (`df2a046`, added `parallel_tool_calls=false`).
+  Changes the request the model sees on every agent turn, and therefore which
+  tool calls it can generate. The commit records that the previous selection
+  attempt produced many `parallel_tool_calls_unsupported` failures. This is an
+  executable *semantic* change, not a cosmetic one.
+- **P2 — repetition miscorrection** (`551a339`, `SELECTION_REPETITIONS` 10 → 5).
+  Moved the code *away* from the intended 150-episode design toward the
+  arithmetically-wrong prose table (see the Stage-A inconsistency note). It is
+  the proximate trigger of the mid-run correction.
+- **P3 — selection-loop / design restoration** (`37219e0`). Fixed the exclusive
+  `1..len` range that excluded the 5th condition position (making 150 episodes
+  impossible), restored repetitions to 10, and corrected the balance/cache /
+  verifier off-by-one and the Stage-A prose/code mismatch.
+
+All three are reasonable *engineering* corrections. But any one of them, made
+after discovery and mutation generation had already made real model requests,
+invalidates the confirmatory A→E protocol as a *single frozen execution*. They
+are retained in history (not squashed, not rewritten) precisely because the
+broken timeline is part of the scientific provenance: it is *why* the verdict is
+inconclusive.
+
+## Formal Verdict vs Exploratory Evidence
+
+These are two distinct layers that must not be mixed.
+
+**Formal pre-registered verdict: INCONCLUSIVE.**
+Reason: post-A executable modifications (P1/P2/P3) violated the registered
+source-freeze gate after real model execution had begun. The registered rule is
+explicit: *a bug found mid-run makes the run inconclusive, not a re-target.*
+An integrity failure renders the run inconclusive and refutes nothing about the
+scientific question (it is **not** `refuted`).
+
+**Exploratory evidence retained (post-protocol-violation):**
+1. Model-visible discovery evidence was sufficient for the mutator to
+   independently generate a read-back / verify / retry policy (no known-repair
+   seeding; the 0009 repair was not leaked into the mutation input).
+2. Under the corrected harness, that generated candidate C1 ranked **first** in
+   the selection tournament (19W / 0L, net +19; C1 > C3 > C4 > C2).
+3. The frozen C1 then achieved **35W / 0L / 13T** on a disjoint promotion set
+   that was never exposed to the mutation generator.
+4. The promotion exact sign test is highly significant
+   (p = 2 / 2^35 = 5.820766091346741e-11) → `quality_improvement`.
+
 ## Conclusion
 
-**Supported.** The first controlled self-evolution loop closed end to end on
-the frozen, disjoint task splits: the model-generated C1 suffix (a
-write-then-verify policy) displaced the incumbent in the frozen selection
-tournament and then produced a statistically significant quality improvement
-on the held-out promotion set (35W/0L, exact sign-test p ≈ 5.8e-11) with zero
-regressions. The whole loop is reproducible and independently verifiable
-from the committed artifacts: every stage is re-checkable by the `verify-*`
-verifiers without any network access, and the frozen selection/promotion
-rules plus the exact sign test are the only decision logic.
+**Formal conclusion: INCONCLUSIVE.**
 
-The result is a single-model, single-run confirmation on one fault, with one
-evolved suffix. It is not a claim that the suffix generalizes across models,
-faults, or tasks; it is a demonstration that a bounded, verifiable
-self-evolution loop can produce a real, confirmable improvement.
+Experiment 0010 did not satisfy its own pre-registered source-freeze
+invariant. Real model execution had already occurred in discovery and mutation
+generation before executable code was changed three times (`df2a046`,
+`551a339`, `37219e0`) to correct provider/request and selection-loop defects.
+The original protocol explicitly specified that any post-A source change makes
+the run inconclusive. It is therefore **not** reported as `supported`, and the
+`H1×H2` hypothesis is **not** formally confirmed:
+
+- **H1 (evolvability):** *suggestive / strong exploratory* support — the mutator
+  independently inferred a verification/retry policy from visible evidence, and
+  the generated candidate then performed well on a held-out set.
+- **H2 (control):** *not formally supported* — the frozen-executable control
+  protocol was violated, so the “self-evolution as a measured, reproducible
+  procedure” claim is not established by this run.
+
+The run nevertheless produced important exploratory evidence: the mutation
+generator independently inferred a write/read-back/retry policy from
+model-visible discovery trajectories; the corrected selection tournament chose
+that generated candidate; and the frozen candidate later achieved 35 wins, 0
+losses, and 13 ties on a disjoint promotion set. These findings **motivate a
+clean confirmatory rerun** but do not convert 0010 into a formally supported
+experiment.
+
+Framed plainly: **0010 is a successful pilot of the intended generate →
+select → promote mechanism, but not a valid confirmatory execution of the
+frozen protocol.** It produced strong exploratory evidence that the mechanism
+can work, while simultaneously demonstrating that the experiment-control
+implementation was not yet reliable enough for a formal `supported` verdict.
+“Self-evolution is confirmed” is **not** claimed.
+
+(Verifier note: the *final* artifacts still verify cleanly — `verify-*` all
+`PASSED` and `self-test` green — **under the final corrected executable**. That
+is a weaker statement than “the original A→E run satisfies the registered
+freeze protocol,” and the two are kept distinct.)
 
 ## Follow-up
 
-- **What 0011 would change:** widen the evolvable surface beyond an
-  append-only policy suffix (e.g. routing/policy or tool-usage behavior),
-  and/or move from a single held-out confirmation to a multi-seed / multi-model
-  estimate so the quality gain is characterized rather than only confirmed.
-  The surface, verifiers, and disjoint splits would all need to grow with it.
-- **What this experiment deliberately does not claim:** no generalization
-  guarantee; no deployment/hot-swap; no claim that more candidates or more
-  repetitions would still select C1; the incumbent and the candidate are the
-  same model, so this is self-improvement of prompt policy, not of weights or
-  architecture.
-- The kernel, oracle, tasks, faults, stresses, selection rule, and sign test
-  are frozen and carry over unchanged into any follow-up; only the evolvable
-  surface and its verifier are in scope for extension.
+**0011 = a clean confirmatory rerun of the same bounded self-evolution
+question** — not a widening of the evolvable surface yet.
+
+- **Same core question, fresh everything:** fresh discovery / selection /
+  promotion tasks; fresh mutation generation; the *same* bounded append-only
+  suffix surface; the *same* selection authority; the *same* promotion sign
+  test.
+- **No C1 reuse:** 0011 must **not** seed or directly reuse C1. The new mutator
+  must independently generate mutations from fresh discovery evidence; otherwise
+  0011 would validate the known solution rather than autonomous evolution.
+- **Mechanical source freeze (the key 0011 fix):** enforce source immutability
+  in code, not by process convention. Evaluate: record the code commit /
+  executable hash at run start; before every stage, verify the git tree /
+  executable hash still matches the frozen code-under-test; **refuse stage
+  execution after any source drift**; separate `run_id` from `experiment_id`;
+  and treat any source modification after the first real model request as a
+  **permanent invalidation requiring a new run identity**.
+- Only **after** a clean 0011 `supported` result should later experiments widen
+  the evolvable surface (routing / tool-usage behavior, multi-seed /
+  multi-model estimates, …).
+
+What 0010 does **not** claim: no generalization guarantee; no
+deployment/hot-swap; no formal `supported` verdict; `H1×H2` is not confirmed;
+the no-source-change invariant did **not** hold; and “self-evolution is
+confirmed” is not asserted. The kernel, oracle, tasks, faults, stresses,
+selection rule, and sign test are frozen and carry over unchanged.
+
+Do **not** implement 0011 in this change; it is recorded for a separate
+clean-run effort.
