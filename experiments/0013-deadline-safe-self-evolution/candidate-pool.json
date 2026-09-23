@@ -1,0 +1,61 @@
+{
+  "experiment_id": "0013",
+  "generation": 1,
+  "parent_id": "G0",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+  "candidates": [
+    {
+      "candidate_id": "C1",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+      "suffix": "After any state_write, state_read the same key and rely on the read-back, not the write acknowledgment.",
+      "suffix_sha256": "3ab31c87282841624cc45bdbabdd9f9c8cc32873944f2787112e69a6ee6d0310",
+      "full_prompt_sha256": "062a048f2967391075a718d17a77910f82edcf28d30b626f503e6be2259b6ab4",
+      "rationale": "Write acknowledgments sometimes reported a value that a subsequent read did not show, and agents declared completion without read-back.",
+      "word_count": 16,
+      "byte_count": 103
+    },
+    {
+      "candidate_id": "C2",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+      "suffix": "If a read-back mismatches, retry the same state_write to that same key before modifying any other key.",
+      "suffix_sha256": "0370f4a3bfdd074e0aec495ca00ad0932f4373ac9a4269701382ae27cee2b741",
+      "full_prompt_sha256": "ef522706eb16d61ad966b9cbdf14144a7e8845b82c3a56c384feec87e188dbb8",
+      "rationale": "Changing a second key after a mismatch often left the final state wrong, while repeated writes to the requested key alone eventually persisted in some episodes.",
+      "word_count": 17,
+      "byte_count": 102
+    },
+    {
+      "candidate_id": "C3",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+      "suffix": "If the intended value still does not persist, test the same key with a simple value, verify it, then retry the intended value before changing other keys.",
+      "suffix_sha256": "b196c6e0ec36a29c7bdf5885b72d419221d278d9559e809a01dfd7950a03827e",
+      "full_prompt_sha256": "4717b7e4b0e73dac207879eb7715641bf687034a6b7e8a7f8445bc59c44dd8fe",
+      "rationale": "A test write to the same requested key sometimes made the intended value persist, suggesting same-key probing is safer than altering other keys.",
+      "word_count": 27,
+      "byte_count": 153
+    },
+    {
+      "candidate_id": "C4",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+      "suffix": "Finish only after every requested key reads back with the intended value and every unrequested key you observed or modified matches its first observed value.",
+      "suffix_sha256": "6d14471710c14a8805c52ef4961ea4866838fd07c4dfea4d73766f7317df4456",
+      "full_prompt_sha256": "5c3f8b3859c41399481f233463844bbc5c5e3f9a18e0a076fd2dadee20c18589",
+      "rationale": "Final states failed when an unrequested key was left changed or a probe value remained, so final verification and restoration are needed.",
+      "word_count": 25,
+      "byte_count": 157
+    }
+  ]
+}

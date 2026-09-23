@@ -1,0 +1,14 @@
+{
+  "stage": "C",
+  "run_id": "0013-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0013-mutation-generation.json",
+      "sha256": "e00b64a9a13c6050a6ee20fc13a0ea488053b27e6771926b918c8699bad952e2"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/candidate-pool.json",
+      "sha256": "177a15fa0b9e666373b4cc56bfa1601c8a06112043f661ba9eebda5ec878a94e"
+    }
+  ]
+}
