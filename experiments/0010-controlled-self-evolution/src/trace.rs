@@ -45,7 +45,6 @@ pub const EXPERIMENT_ID: &str = "0010";
 /// The three registered structural families, in registry order.
 ///
 /// Registered task IDs per split (spec §20/§31/§44).
-
 pub const DISCOVERY_TASKS: [&str; 3] = ["EV1", "EV2", "EV3"];
 pub const SELECTION_TASKS: [&str; 3] = ["SEL1", "SEL2", "SEL3"];
 pub const PROMOTION_TASKS: [&str; 6] = ["PRO1", "PRO2", "PRO3", "PRO4", "PRO5", "PRO6"];
@@ -57,7 +56,7 @@ pub const DISCOVERY_EPISODES: usize = (3 * DISCOVERY_REPETITIONS) as usize; // 1
 pub const MIN_VALID_DISCOVERY_EPISODES: u32 = 16;
 
 /// Selection (spec §31–34): 3 tasks × 10 repetitions × 5 conditions.
-pub const SELECTION_REPETITIONS: u32 = 5;
+pub const SELECTION_REPETITIONS: u32 = 10;
 pub const SELECTION_CONDITIONS: [&str; 5] = ["G0", "C1", "C2", "C3", "C4"];
 pub const SELECTION_EPISODES: usize =
     SELECTION_TASKS.len() * SELECTION_REPETITIONS as usize * SELECTION_CONDITIONS.len(); // 150
@@ -973,8 +972,10 @@ pub fn compute_selection_summary(
             infra += 1;
         }
     }
-    let balanced = position_counts.len() == 25
-        && position_counts.values().all(|&n| n == SELECTION_REPETITIONS);
+    let expected_per_cell =
+        SELECTION_TASKS.len() as u32 * SELECTION_REPETITIONS / SELECTION_CONDITIONS.len() as u32;
+    let balanced =
+        position_counts.len() == 25 && position_counts.values().all(|&n| n == expected_per_cell);
     let count_ok = records.len() == SELECTION_EPISODES;
 
     // Cell bookkeeping: a cell is common-valid iff NONE of the five
@@ -1130,7 +1131,7 @@ pub fn compute_selection_summary(
         .collect();
     let mut cache_audit = Vec::new();
     for id in SELECTION_CONDITIONS {
-        for pos in 1..SELECTION_CONDITIONS.len() as u32 {
+        for pos in 1..=SELECTION_CONDITIONS.len() as u32 {
             let pop: Vec<SelectionRecord> = records
                 .iter()
                 .filter(|r| r.condition == id && r.condition_position == pos)
@@ -1366,7 +1367,7 @@ pub fn compute_promotion_summary(
         .collect();
     let mut cache_audit = Vec::new();
     for id in &conditions {
-        for pos in 1..2u32 {
+        for pos in 1..=2u32 {
             let pop: Vec<PromotionRecord> = records
                 .iter()
                 .filter(|r| &r.condition == id && r.condition_position == pos)
@@ -1930,7 +1931,10 @@ fn verify_record_core<R: RecordCoreLike>(
         // Replay the applied writes only (the true state), positionally:
         // the i-th state_write call corresponds to the i-th audit entry.
         if c.tool_name == "state_write" {
-            let applied = record.write_attempts().get(write_idx).is_some_and(|w| w.applied);
+            let applied = record
+                .write_attempts()
+                .get(write_idx)
+                .is_some_and(|w| w.applied);
             write_idx += 1;
             if applied {
                 let k = c.arguments.get("key").and_then(Value::as_str).unwrap_or("");
@@ -2413,10 +2417,12 @@ pub fn verify_selection(
         }
         verify_record_core(&mut errors, &who, task, count, &expected_full, r);
     }
+    let expected_per_cell =
+        SELECTION_TASKS.len() as u32 * SELECTION_REPETITIONS / SELECTION_CONDITIONS.len() as u32;
     for ((cond, pos), n) in &position_counts {
-        if *n != SELECTION_REPETITIONS {
+        if *n != expected_per_cell {
             errors.push(format!(
-                "condition {cond} position {pos} has {n} episodes, expected {SELECTION_REPETITIONS} (registered cyclic balance)"
+                "condition {cond} position {pos} has {n} episodes, expected {expected_per_cell} (registered cyclic balance)"
             ));
         }
     }
@@ -3090,21 +3096,20 @@ pub fn build_synthetic_artifacts() -> SyntheticArtifacts {
     };
 
     // ---------- selection ----------
-    // 30 cells (3 tasks × 5 reps, c = ti*5 + rep-1). G0 fails on 13:
-    // c%5 ∈ {0,1,2} (9) plus {3,4,8,9,13,14} (13 total, per task 5,
-    // 5, 3). C1/C3 fail on the G0 failures plus one G0-success cell
-    // each (13W/2L; exact (net,wins,losses) tie); C2 fails exactly on
-    // the 17 G0 successes (13W/0L → selected, the design winner);
-    // C4 fails on G0 failures plus two G0-success cells (11W/2L).
+    // 30 cells (3 tasks × 10 reps, c = ti*10 + rep-1). G0 fails on 13
+    // (task0 reps 0-4, task1 reps 0-4, task2 reps 0-2). C2 always
+    // succeeds → 13 wins / 0 losses / 17 ties → selected (the design
+    // winner). C1/C3 each fail on exactly two G0-success cells
+    // (13W/2L, exact tie broken by ordinal). C4 fails on two G0-failure
+    // cells (ties) plus two G0-success cells (losses) → 11W/2L.
     let g0_fail = |c: usize| -> bool {
-        c % 5 < 3 || matches!(c, 3 | 4 | 8 | 9 | 13 | 14 | 18 | 19)
+        let ti = c / 10;
+        let r = c % 10;
+        (ti < 2 && r < 5) || (ti == 2 && r < 3)
     };
-    let c1_fail =
-        |c: usize| -> bool { !matches!(c, 0 | 5 | 10) && (g0_fail(c) || c == 3 || c == 8) };
-    let c3_fail =
-        |c: usize| -> bool { !matches!(c, 1 | 6 | 11) && (g0_fail(c) || c == 4 || c == 9) };
-    let c4_fail =
-        |c: usize| -> bool { !matches!(c, 0 | 5) && (g0_fail(c) || c == 3 || c == 4 || c == 8) };
+    let c1_fail = |c: usize| -> bool { c == 6 || c == 16 };
+    let c3_fail = |c: usize| -> bool { c == 7 || c == 17 };
+    let c4_fail = |c: usize| -> bool { c == 0 || c == 10 || c == 8 || c == 18 };
     let cond_success = |c: usize, cond: &str| -> bool {
         match cond {
             "G0" => !g0_fail(c),
@@ -3117,9 +3122,10 @@ pub fn build_synthetic_artifacts() -> SyntheticArtifacts {
     };
     let mut selection = Vec::new();
     let mut counter = 0usize;
-    // The synthetic set always encodes the full 3×5×5 = 150 design, so
-    // it uses the design repetition count regardless of the constant.
-    let synth_reps: u32 = 5;
+    // The synthetic set encodes the full 3×10×5 = 150 design; use the
+    // design repetition count so the record count always matches the
+    // registered SELECTION_EPISODES.
+    let synth_reps: u32 = SELECTION_REPETITIONS;
     for (ti, task) in registry
         .tasks
         .iter()

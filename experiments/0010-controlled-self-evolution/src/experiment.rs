@@ -749,7 +749,7 @@ pub fn select(config: &SelectConfig) -> Result<(), String> {
         let (stress, count) = trace::frozen_stress(&task.family)
             .ok_or_else(|| format!("task {} family has no frozen stress", task.id))?;
         for rep in 1..=SELECTION_REPETITIONS {
-            for pos in 1..SELECTION_CONDITIONS.len() as u32 {
+            for pos in 1..=SELECTION_CONDITIONS.len() as u32 {
                 let cond = trace::selection_condition_at(rep, pos);
                 let (prompt, suffix_sha) = prompts
                     .iter()

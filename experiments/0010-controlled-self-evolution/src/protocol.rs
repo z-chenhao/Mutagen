@@ -230,7 +230,7 @@ impl ChatRequest {
             messages,
             tools,
             tool_choice: has_tools.then(|| "auto".to_string()),
-            parallel_tool_calls: has_tools.then(|| false),
+            parallel_tool_calls: has_tools.then_some(false),
             temperature,
         }
     }
