@@ -1,0 +1,130 @@
+{
+  "experiment_id": "0013",
+  "families": {
+    "direct_set": { "discovery": ["E13A"], "selection": ["S13A"], "promotion": ["P13A", "P13B"] },
+    "conditional_set": { "discovery": ["E13B"], "selection": ["S13B"], "promotion": ["P13C", "P13D"] },
+    "replacement": { "discovery": ["E13C"], "selection": ["S13C"], "promotion": ["P13E", "P13F"] }
+  },
+  "tasks": [
+    {
+      "id": "E13A",
+      "name": "discovery_direct_set_x",
+      "family": "direct_set",
+      "split": "discovery",
+      "initial_state": { "x": "V13_DA_0", "y": "V13_KEEP_DA" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_DA_1", "y": "V13_KEEP_DA" },
+      "prompt": "Set x to V13_DA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "E13B",
+      "name": "discovery_conditional_set_y",
+      "family": "conditional_set",
+      "split": "discovery",
+      "initial_state": { "x": "V13_KEEP_DB", "y": "V13_DB_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_DB", "y": "V13_DB_1" },
+      "prompt": "If y is V13_DB_0, set y to V13_DB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "E13C",
+      "name": "discovery_replacement_x",
+      "family": "replacement",
+      "split": "discovery",
+      "initial_state": { "x": "V13_DC_0", "y": "V13_KEEP_DC" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_DC_1", "y": "V13_KEEP_DC" },
+      "prompt": "Change x from V13_DC_0 to V13_DC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S13A",
+      "name": "selection_direct_set_y",
+      "family": "direct_set",
+      "split": "selection",
+      "initial_state": { "x": "V13_KEEP_SA", "y": "V13_SA_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_SA", "y": "V13_SA_1" },
+      "prompt": "Set y to V13_SA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S13B",
+      "name": "selection_conditional_set_x",
+      "family": "conditional_set",
+      "split": "selection",
+      "initial_state": { "x": "V13_SB_0", "y": "V13_KEEP_SB" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_SB_1", "y": "V13_KEEP_SB" },
+      "prompt": "If x is V13_SB_0, set x to V13_SB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "S13C",
+      "name": "selection_replacement_y",
+      "family": "replacement",
+      "split": "selection",
+      "initial_state": { "x": "V13_KEEP_SC", "y": "V13_SC_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_SC", "y": "V13_SC_1" },
+      "prompt": "Change y from V13_SC_0 to V13_SC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13A",
+      "name": "promotion_direct_set_x",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V13_PA_0", "y": "V13_KEEP_PA" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_PA_1", "y": "V13_KEEP_PA" },
+      "prompt": "Set x to V13_PA_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13B",
+      "name": "promotion_direct_set_y",
+      "family": "direct_set",
+      "split": "promotion",
+      "initial_state": { "x": "V13_KEEP_PB", "y": "V13_PB_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_PB", "y": "V13_PB_1" },
+      "prompt": "Set y to V13_PB_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13C",
+      "name": "promotion_conditional_set_x",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V13_PC_0", "y": "V13_KEEP_PC" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_PC_1", "y": "V13_KEEP_PC" },
+      "prompt": "If x is V13_PC_0, set x to V13_PC_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13D",
+      "name": "promotion_conditional_set_y",
+      "family": "conditional_set",
+      "split": "promotion",
+      "initial_state": { "x": "V13_KEEP_PD", "y": "V13_PD_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_PD", "y": "V13_PD_1" },
+      "prompt": "If y is V13_PD_0, set y to V13_PD_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13E",
+      "name": "promotion_replacement_x",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V13_PE_0", "y": "V13_KEEP_PE" },
+      "fault_key": "x",
+      "target_state": { "x": "V13_PE_1", "y": "V13_KEEP_PE" },
+      "prompt": "Change x from V13_PE_0 to V13_PE_1. Finish when the requested external state has been achieved."
+    },
+    {
+      "id": "P13F",
+      "name": "promotion_replacement_y",
+      "family": "replacement",
+      "split": "promotion",
+      "initial_state": { "x": "V13_KEEP_PF", "y": "V13_PF_0" },
+      "fault_key": "y",
+      "target_state": { "x": "V13_KEEP_PF", "y": "V13_PF_1" },
+      "prompt": "Change y from V13_PF_0 to V13_PF_1. Finish when the requested external state has been achieved."
+    }
+  ]
+}
