@@ -1,0 +1,21 @@
+{
+  "candidate_pool_sha256": "b2840fedb6ff9ca1ac43e64da7f39373aeb1d5982d18d59bf011237f072c788c",
+  "experiment_id": "0010",
+  "full_prompt_sha256": "e4ff29942607afa4a26b97e032ac28334b1b61429085f4bc62668b06ef04ac7f",
+  "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+  "parent_id": "G0",
+  "selected_candidate_id": "C1",
+  "selection": {
+    "baseline_failures": 23,
+    "common_valid_cells": 28,
+    "losses": 0,
+    "net_margin": 19,
+    "ties": 9,
+    "wins": 19
+  },
+  "selection_raw_sha256": "b06f7aa1e82abcd5e26c1578b51e4b618a34fad6c22efb5c6178e1371358a646",
+  "selection_summary_sha256": "eaabef030fca94b8b0421531b721c06c3d79969a55fde58289349766af4712d3",
+  "suffix": "After any write, read the same key before treating the change as complete. If the read differs from the intended value, retry the same write and verify again. Do not claim success based only on a write acknowledgement.",
+  "suffix_sha256": "0101d61862f6822663ca515a67577814b375a76d8abc128eda2978efea76f2ad",
+  "tie_break_path": "ranking C1(net=+19d,wins=19,losses=0) > C3(net=+12d,wins=14,losses=2) > C4(net=+4d,wins=6,losses=2) > C2(net=+3d,wins=6,losses=3); best net margin +19 → mutation displaces G0"
+}

@@ -1,0 +1,61 @@
+{
+  "candidates": [
+    {
+      "byte_count": 218,
+      "candidate_id": "C1",
+      "full_prompt_sha256": "e4ff29942607afa4a26b97e032ac28334b1b61429085f4bc62668b06ef04ac7f",
+      "generation": 1,
+      "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "rationale": "Several episodes treated a successful write response as enough, but later reads showed the old value; requiring read-back verification avoids false completion.",
+      "suffix": "After any write, read the same key before treating the change as complete. If the read differs from the intended value, retry the same write and verify again. Do not claim success based only on a write acknowledgement.",
+      "suffix_sha256": "0101d61862f6822663ca515a67577814b375a76d8abc128eda2978efea76f2ad",
+      "word_count": 38
+    },
+    {
+      "byte_count": 249,
+      "candidate_id": "C2",
+      "full_prompt_sha256": "b8e9623d1776a9ce8a20cd4be235a0e5682166122241b55e6673b745c2528f95",
+      "generation": 1,
+      "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "rationale": "Some runs changed an unrequested key to make the requested key stick, leaving final state different from the requested state; minimal side effects and restoration improve success.",
+      "suffix": "Modify only state keys explicitly required by the requested final state. If you temporarily change another key to diagnose a dependency, restore it to its last observed value before finishing, then verify both the requested key and the restored key.",
+      "suffix_sha256": "5921b30d1c50e307a58e6e3a0e09c57a8429f31c59ea74f488785c7ebf5fb0c8",
+      "word_count": 40
+    },
+    {
+      "byte_count": 225,
+      "candidate_id": "C3",
+      "full_prompt_sha256": "95200b4dd9479b66c9b921c12330367909549880cb33c7b0633f9af8f172b98c",
+      "generation": 1,
+      "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "rationale": "Some runs wrote arbitrary probe values to a key that had to end in a requested value, leaving the final state wrong; restricting probes prevents corruption.",
+      "suffix": "Do not use a key that must end in a requested value for exploratory probes. Prefer reading other keys first. If a probe write is unavoidable, immediately rewrite the requested value to that key and verify it before finishing.",
+      "suffix_sha256": "84f24be5efafbce425ec7ee0bac95ed4fd335299234e39b3b8b88d83850af554",
+      "word_count": 39
+    },
+    {
+      "byte_count": 225,
+      "candidate_id": "C4",
+      "full_prompt_sha256": "0d77bfba4aae7b0af5eebf003418d61aabceaa283dfb1ba449328884c2931aa2",
+      "generation": 1,
+      "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "rationale": "Conditional tasks and turn-limited runs failed when agents kept probing or omitted the final answer; a clear precondition check and stop condition improves robustness.",
+      "suffix": "For conditional tasks, act only when the observed precondition matches; otherwise finish without making changes. Once the requested state is verified, stop unnecessary tool calls and give the concise final answer immediately.",
+      "suffix_sha256": "35de95ca0cdf7706d5976d4283edf639bdafedaac3e75c180962daeaf07f9a5a",
+      "word_count": 32
+    }
+  ],
+  "experiment_id": "0010",
+  "generation": 1,
+  "mutation_input_sha256": "3008de78ba3a322d1d898c5b56d71031db9ff421a306ab737a273ea3d8c1c9ed",
+  "parent_id": "G0",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def"
+}
