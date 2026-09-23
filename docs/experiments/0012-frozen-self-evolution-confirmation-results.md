@@ -1,10 +1,14 @@
 # Experiment 0012 Results — Frozen End-to-End Self-Evolution Confirmation
 
-**Status: COMPLETE.** The run 0012-r1 executed Stages A0 → A1 → B → C → D
-under the frozen protocol and reached its formal conclusion at Stage D:
-**INCONCLUSIVE** (one registered integrity rule was violated by a 2 ms
-budget-boundary timing artifact; the protocol then correctly blocked the
-stage-D freeze and the promotion stage). This document is NOT
+**Status: COMPLETE.** Run 0012-r1 progressed cleanly through Stage D —
+168 agent episodes (18 discovery + 150 selection) plus one
+mutation-generation request were executed under the frozen protocol. Its
+formal conclusion at Stage D is **INCONCLUSIVE**: the Stage-D verifier
+reported one registered integrity violation (a 2 ms
+runtime-deadline/verifier-completion boundary disagreement), so the
+stage-D freeze was never written and Stage E was never permitted to run.
+The experiment was *designed* as an end-to-end confirmation; the run
+did not complete the full B → C → D → E chain. This document is NOT
 source-frozen; it records what happened, exactly, after the frozen code
 commit.
 
@@ -82,10 +86,14 @@ commit.
   | C3 | 14 | 0 | 15 | +14 | 1.22e-04 |
   | C4 | 3 | 2 | 24 | +1 | 1.00 |
 
-  Selected: **C2** (`net margin +27 > 0` → mutation displaces G0).
+  Selected: **C2** (net margin +27 > 0 under the registered
+  deterministic rule). Because the Stage-D freeze was never written,
+C2 is the **exploratory / provisional selection winner** — it is NOT a
+  formally selected generation, NOT a promoted generation, and NOT G1.
 - **Integrity event:** verifier violation — episode `0012-r1-sel-023`
-  recorded `wall_time_ms = 600002`, exceeding the registered 600 000 ms
-  per-episode budget by 2 ms.
+  recorded `wall_time_ms = 600002` while the frozen verifier requires
+  `wall_time_ms <= 600000` (a 2 ms boundary disagreement; root cause
+  below).
 - Consequence, per the frozen protocol: **no stage-D freeze is
   written; Stage E (promotion) must not run; the run is INCONCLUSIVE
   and is permanently finished.** The no-restart rule now mechanically
@@ -108,28 +116,56 @@ before D; stage-D freeze correctly REFUSED by the verifier), the
 explicit schema fixed the 0011 Stage-C structural failure (first-attempt
 validity), and the run terminated at the first registered integrity
 violation with no restart, no patching, and no continuation. The
-verdict it produced is INCONCLUSIVE, not SUPPORTED.
+experiment was designed as an end-to-end confirmation; the run did not
+complete it, because Stage E was never permitted to run. The verdict it
+produced is INCONCLUSIVE, not SUPPORTED.
 
-**The violation is a boundary-timing artifact, not a protocol bypass.**
-Episode 023 had all nine requests *initiated* within budget; the last
-in-flight request (killed at the deadline by the budget mechanism,
-`http_error`) completed 2 ms past the 600 s mark, and the frozen
-verifier rule `wall_time_ms > 600 000` flagged the recorded value
-600 002. The rule is byte-identical to 0011's `max_time_ms` check —
-0011 never exercised it because it stopped at Stage C. The strict
-`>` comparison on a *recorded* wall time is fragile by construction:
-an in-flight request straddling the deadline overshoots the budget
-bound by up to its remaining duration (up to the 600 s request
-timeout). Had the overshoot been 1 000 ms instead of 2 ms, the same
-outcome would follow; the registered rule cannot distinguish the two.
+**Root cause: two registered contracts disagree at the deadline
+boundary (not a protocol bypass, and not a runtime overrun).** The
+frozen runtime deadline semantics are: no model request may *start* at
+or after the episode deadline, and each request's transport timeout is
+set to `min(remaining budget, REQUEST_TIMEOUT)`. Episode 023 (10
+requests; termination `http_error`; `wall_time_ms = 600002`;
+`model_wait_time_ms = 600002`) obeyed both: its tenth request started
+while `remaining > 0`, and its timeout was bounded by that remaining
+time — the runtime did not initiate a request after the deadline and
+never let a request run for an unbounded extra duration. However, a
+*blocking* transport timeout can return slightly after the nominal
+deadline because timeout detection, OS scheduling, and request teardown
+are not instantaneous: the episode therefore recorded 600 002 ms even
+though request initiation and timeout configuration respected the
+runtime deadline. The verifier's *independent* contract is on the
+recorded completion: `wall_time_ms <= 600 000` (byte-identical to
+0011's `max_time_ms` check, which 0011 never exercised because it
+stopped at Stage C). The failure is a boundary disagreement between two
+registered contracts — **runtime deadline semantics** (no late request
+start + timeout ≤ remaining budget) versus **verifier semantics**
+(recorded final wall time ≤ 600 000 ms) — and the frozen verifier rule
+`wall_time_ms > 600 000 ⇒ violation` is applied strictly: no
+retroactive tolerance, no manual waiver, no verifier edit.
+
+**Hypothesis interpretation.**
+- **H1 (evolvability): NOT DETERMINED.** No promotion stage ran, so
+  there is no confirmatory held-out comparison of any generated
+  candidate against G0.
+- **H2 (control): NOT FULLY TESTED.** The full registered protocol
+  includes Stage E, which never ran. The narrower claim that stands:
+  source freeze, endpoint discipline, Stage-B and Stage-C artifact
+  freezes, mutation generation, selection execution, and the
+  fail-closed Stage-D integrity handling all behaved as registered
+  through Stage D.
 
 **Non-formal scientific content (post-protocol-violation, exploratory
-only — the 0010 precedent):** three of four independently generated
-candidates beat G0 on the clean selection split (C2 +27, C1 +17,
-C3 +14, all 0 losses), and C1 is a genuine independent rediscovery of
-the 0010/0011 read-after-write policy. But under the frozen protocol
-these numbers carry no formal weight, and Stage E (promotion, 96
-episodes) **never ran**: no promotion artifacts exist for 0012.
+only — the 0010 precedent):** on the 29 common-valid cells, three of
+four independently generated candidates beat G0 (C2 +27 / 27W-0L-2T,
+C1 +17 / 17W-0L-12T, C3 +14 / 14W-0L-15T, all 0 losses; C4 +1), with
+C2 the provisional exploratory winner — and C1 is a genuine
+independent rediscovery of the verify-after-write policy class (fresh
+V12 discovery evidence; no C1 seed; no known-repair seed; the explicit
+schema affected output shape only). This is **not** formal
+self-evolution evidence: under the frozen protocol these numbers carry
+no formal weight, and Stage E (promotion, 96 episodes) **never ran**:
+no promotion artifacts exist for 0012.
 
 ## 0010 / 0011 / 0012 comparison
 
@@ -137,37 +173,88 @@ episodes) **never ran**: no promotion artifacts exist for 0012.
 |---|---|---|---|
 | Source freeze | promise — violated mid-run | mechanical — held | mechanical — held |
 | Stage C mutation | generated (weak evidence) | **failed** (shape drift, 2/2 attempts) | **succeeded, attempt 1** (explicit schema) |
-| Stage D selection | ran (invalidated) | never ran | ran 150/150; gates passed; **1 verifier violation (2 ms)** |
+| Stage D selection | ran (invalidated) | never ran | ran 150/150; measurement gates passed; **1 integrity violation; NOT frozen** |
 | Stage E promotion | ran (C1 35W/0L/13T, non-formal) | never ran | **not permitted** (stage-D freeze refused) |
 | Stage-artifact provenance | partial (gap) | partial (gap) | commit-level freeze; B+C frozen, D correctly refused |
 | Verdict | INCONCLUSIVE | INCONCLUSIVE | **INCONCLUSIVE** |
 
 ## What this run demonstrates
 
-1. The four 0012 changes all behaved as pre-registered: the explicit
-   schema removed the 0011 Stage-C failure mode; the commit-level
-   stage freeze closed the 0011 provenance gap (and, at Stage D, did
-   its job by *refusing* to freeze a violated stage); the
-   no-restart/no-unregistered-call discipline held (zero unregistered
-   endpoint calls; no re-runs).
-2. The frozen confirmation question receives its answer: **one
-   registered integrity rule — inherited verbatim from 0011 and never
-   exercised by 0011 — is too strict to be survivable by a real run
-   against a slow local endpoint.** The loop ran end-to-end through
-   318 live episodes, but the 600 s wall-time verifier bound makes any
-   run that contains one deadline-straddling request INCONCLUSIVE.
-3. No formal SUPPORTED or REFUTED claim about H1 is produced. The
-   0010 C1 result remains non-formal; 0012 neither confirms nor
-   refutes it.
+1. **All four 0012 control improvements validated successfully**
+   (meaningful engineering evidence): the explicit mutation-output
+   schema removed the 0011 Stage-C failure mode (candidate pool valid
+   on attempt 1; shape contract held); the Stage-B Git stage-freeze
+   held; the Stage-C Git stage-freeze held; the source freeze held;
+   endpoint discipline held (zero unregistered endpoint calls);
+   no-restart held; and the Stage-D integrity verifier **failed
+   closed** exactly as registered (refusing to freeze a violated
+   stage). This is a valid control-system result even though the run
+   verdict is INCONCLUSIVE.
+2. **The run progressed cleanly through Stage D** — 168 agent
+   episodes plus one mutation-generation request were executed under
+   the frozen protocol — and stopped at the first registered
+   integrity violation. It did **not** complete the full loop: Stage E
+   (promotion, 96 episodes) was never permitted to run, and no
+   0012 promotion artifacts exist.
+3. **The boundary disagreement is a registered-contract gap, not a
+   runtime defect and not a verifier bypass.** The runtime honored its
+   deadline semantics (no late request start; timeout bounded by the
+   remaining budget); the verifier honored its completion-time
+   contract (recorded wall ≤ 600 000 ms); the two disagree by 2 ms at
+   the timeout boundary. A 2 ms overshoot is still a violation under
+   the frozen rule — the fail-closed outcome is preserved exactly.
+4. No formal SUPPORTED or REFUTED claim about H1 is produced (H1
+   **NOT DETERMINED**). The 0010 C1 result remains non-formal; 0012
+   neither confirms nor refutes it.
 
-## Recommended next step (NOT part of this run)
+## Policy-attractor observation (post-hoc diagnostic only — NOT part
+of the formal verdict)
 
-A **0013** that registers an explicit boundary semantics for the
-episode time budget — e.g., the verifier bound checks *request-initiation*
-discipline (no request started after the deadline) rather than the
-recorded *completion* wall time, or applies a registered tolerance to
-wall time — and reruns the frozen confirmation with that rule. That
-is a registered design change to a *new* experiment with a *new*
+Across three consecutive controlled runs the mutation operator
+converged on the same policy class:
+
+- 0010: a verify/retry-after-write policy emerged;
+- 0011: the same verify/retry policy re-emerged inside the
+  schema-invalid (rejected) generation output;
+- 0012: a verify/retry (C1) and retry+read-back (C2) policy class
+  emerged again, with C2 the exploratory selection winner.
+
+This repeated convergence toward the same policy class — a recurring
+**mutation attractor** for silent-write faults — is a post-hoc
+diagnostic observation only. It is not part of the formal verdict,
+carries no formal weight, and is reported solely because three
+independent runs now agree on it.
+
+## Minimal change for the next clean confirmation (NOT part of this run)
+
+The next experiment should change **only** the deadline semantics and
+add request-level timing evidence. Everything else from 0012 carries
+forward unchanged: the explicit mutation schema, the shape-aware
+retry, the source freeze, the commit-level stage-artifact freeze,
+endpoint discipline, the fresh V12 task splits, the selection rule,
+the promotion rule, the frozen 0009 fault profile, the model,
+endpoint, and temperatures. No evolvable-surface expansion.
+
+1. **Register an explicit multi-part deadline contract**:
+   (1) no model request may START at or after the episode deadline;
+   (2) each model request timeout must be ≤ the remaining episode
+   budget; (3) timeout-induced request termination is a valid
+   infrastructure failure; (4) recorded episode completion may exceed
+   the nominal deadline only by a small, pre-registered
+   timeout-return / scheduling tolerance (`deadline_return_tolerance_ms`
+   pre-registered in the future experiment — no value is selected
+   here in 0012); (5) the verifier checks these properties directly.
+2. **Record per-request timing evidence** for every model request:
+   `request_started_elapsed_ms`, `requested_timeout_ms`,
+   `request_finished_elapsed_ms`, `timed_out`. The verifier then
+   checks, directly: `request_started_elapsed_ms < episode_deadline`;
+   `requested_timeout_ms <= episode_deadline -
+   request_started_elapsed_ms`; and `request_finished_elapsed_ms <=
+   episode_deadline + registered_return_tolerance` — instead of
+   inferring protocol compliance from one aggregate final wall-time
+   field.
+
+This is a registered design change to a *new* experiment with a *new*
 frozen commit; it is deliberately not applied retroactively here.
 
 ## Artifacts (all committed)
@@ -179,7 +266,9 @@ frozen commit; it is deliberately not applied retroactively here.
 - `docs/experiments/artifacts/0012-mutation-generation.json`,
   `candidate-pool.json`, `stage-c-freeze.json` (stage-C frozen)
 - `docs/experiments/artifacts/0012-selection-trajectories.jsonl`,
-  `0012-selection-summary.json`, `selected-candidate.json` (stage-D
-  evidence; **NOT stage-frozen** — freeze refused by the verifier)
+  `0012-selection-summary.json`, `selected-candidate.json` — Stage-D
+  **evidence only**. The stage-D freeze manifest is **ABSENT**
+  (the verifier refused to freeze the stage); these three files are
+  NOT frozen selection artifacts in the formal sense.
 - `run-manifest.json` (source-frozen)
 - No stage-D freeze manifest, no promotion artifacts, no Stage E.
