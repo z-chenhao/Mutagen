@@ -171,15 +171,84 @@ See Results.
 
 ## Results
 
-_(filled in at commit E: per-stage summaries, selected candidate text,
-promotion counts, sign-test p, classification, gate status, tamper
-results, total cost. Leave empty until the run is complete.)_
+Model `incoai/Qwen3.8-27B-Splash` via the local endpoint (redacted). One
+unseeded run, end to end. Per-stage artifacts are committed at each
+stage-freeze commit (B–E); the `verify-*` verifiers all report `PASSED` and
+the offline `self-test` (35 checks + 27 tamper cases) is green.
+
+### Discovery (stage B) — 18 episodes, incumbent G0 only
+
+- 3 tasks × 6 repetitions, incumbent suffix only.
+- Oracle successes **4/18**, agent failures 6, infrastructure failures 0.
+- The fault genuinely challenges the incumbent (~22% success); discovery is
+  therefore an honest baseline, not a pass/fail gate. Mutation input frozen.
+- Cost: 158 model requests, 145 executed tool calls.
+
+### Mutation generation (stage C) — frozen candidate pool
+
+- 4 bounded append-only prompt-suffix candidates C1–C4 (≤800 bytes each),
+  same model, no known-repair seeding. Pool sha256 frozen
+  `b2840fed…c788c`.
+
+### Selection (stage D) — 150 episodes, 3×10×5 balanced conditions
+
+- 150 episodes (3 tasks × 10 repetitions × 5 conditions, cyclic rotation);
+  2 infrastructure failures → **28/30 common-valid cells**, 23 G0 failures
+  (potential information).
+- Frozen lexicographic rule (net margin > 0 required; ordinal tie-break;
+  cost not an input) selects **C1**: 19 wins / 0 losses / 9 ties, net **+19**.
+  Ranking **C1 > C3 > C4 > C2** (C3 14W/2L/+12, C4 6W/2L/+4, C2 6W/3L/+3).
+- All integrity gates pass; C1 displaces G0 → promotion authorized.
+- Cost: ~1238 model requests, ~1124 executed tool calls.
+
+### Promotion (stage E) — 96 episodes, G0 vs C1 on the held-out split
+
+- 6 promotion tasks × 8 repetitions × 2 conditions (G0 + C1), disjoint from
+  discovery/selection.
+- 48 valid pairs (0 infrastructure failures), 37 potential information,
+  35 informative pairs.
+- C1 vs G0: **35 wins / 0 losses / 13 ties**. Exact two-sided sign test
+  **p = 5.82e-11** (< 0.05). Classification **quality_improvement**.
+- G0 succeeds 11/48 pairs; C1 succeeds 46/48.
+- All gates pass. Cost: ~730 model requests, ~640 executed tool calls.
+
+### Selected candidate (C1) — the one evolvable artifact
+
+> After any write, read the same key before treating the change as complete.
+> If the read differs from the intended value, retry the same write and
+> verify again. Do not claim success based only on a write acknowledgement.
+
+(sha256 `0101d618…76f2ad`; full prompt sha256 `e4ff2994…4712d3`.)
 
 ## Conclusion
 
-_(filled in at commit E)_
+**Supported.** The first controlled self-evolution loop closed end to end on
+the frozen, disjoint task splits: the model-generated C1 suffix (a
+write-then-verify policy) displaced the incumbent in the frozen selection
+tournament and then produced a statistically significant quality improvement
+on the held-out promotion set (35W/0L, exact sign-test p ≈ 5.8e-11) with zero
+regressions. The whole loop is reproducible and independently verifiable
+from the committed artifacts: every stage is re-checkable by the `verify-*`
+verifiers without any network access, and the frozen selection/promotion
+rules plus the exact sign test are the only decision logic.
+
+The result is a single-model, single-run confirmation on one fault, with one
+evolved suffix. It is not a claim that the suffix generalizes across models,
+faults, or tasks; it is a demonstration that a bounded, verifiable
+self-evolution loop can produce a real, confirmable improvement.
 
 ## Follow-up
 
-_(filled in at commit E: what would need to change for Experiment 0011;
-what this experiment deliberately does not claim.)_
+- **What 0011 would change:** widen the evolvable surface beyond an
+  append-only policy suffix (e.g. routing/policy or tool-usage behavior),
+  and/or move from a single held-out confirmation to a multi-seed / multi-model
+  estimate so the quality gain is characterized rather than only confirmed.
+  The surface, verifiers, and disjoint splits would all need to grow with it.
+- **What this experiment deliberately does not claim:** no generalization
+  guarantee; no deployment/hot-swap; no claim that more candidates or more
+  repetitions would still select C1; the incumbent and the candidate are the
+  same model, so this is self-improvement of prompt policy, not of weights or
+  architecture.
+- The kernel, oracle, tasks, faults, stresses, selection rule, and sign test
+  are frozen and carry over unchanged into any follow-up; only the evolvable
+  surface and its verifier are in scope for extension.
