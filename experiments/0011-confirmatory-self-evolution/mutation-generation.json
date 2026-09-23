@@ -1,0 +1,45 @@
+{
+  "experiment_id": "0011",
+  "run_id": "0011-r1",
+  "run_manifest_sha256": "3cff11c2f28d01d80fade5f8b9e175f64621cfe260e344a2308e681545fc769c",
+  "frozen_design_sha256": "db494301b0d902b500b9b89e3d38779ca8f4c69a22a771e5e7d45601764a1db0",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "temperature": 0.7,
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "code_under_test_commit": "1b2cc38edb3a85ebfdb9ae66c138ba0b078e34e9",
+  "mutation_input_sha256": "3d26d3c93b98a17584ff8c3ba1656278b8bc028b80ed98feb053584098f239fb",
+  "mutator_prompt_sha256": "f49733682033cefc4f2448572f9199fc78193397aa3ef98e967e2ac5d25471b1",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "attempt_count": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "raw_response": "\n\n{\n  \"suffixes\": [\n    \"Treat state_write success as unconfirmed until a state_read confirms the written key.\",\n    \"If a read-back does not match the requested value, retry the same key before changing any other key.\",\n    \"Only change keys named in the task; for conditional tasks, read the condition before acting.\",\n    \"Once the requested final state is confirmed by read-back, stop and give the concise final answer.\"\n  ]\n}",
+      "structurally_valid": false,
+      "validation_errors": [
+        "wrong schema (expected {\"candidates\": [...]}): missing field `candidates`"
+      ],
+      "prompt_tokens": 45636,
+      "cached_prompt_tokens": 0,
+      "completion_tokens": 8988,
+      "reasoning_tokens": 8885,
+      "wall_time_ms": 401136
+    },
+    {
+      "attempt": 2,
+      "raw_response": "\n\n{\n  \"candidates\": [\n    \"After any write, read back the same key before treating the change as successful.\",\n    \"If a read-back does not match the requested value, retry the same requested value before changing any other key.\",\n    \"Do not modify keys that are not required by the task, even if they appear related.\",\n    \"Once a read-back confirms the requested final state, stop and give the concise final answer.\"\n  ]\n}",
+      "structurally_valid": false,
+      "validation_errors": [
+        "wrong schema (expected {\"candidates\": [...]}): invalid type: string \"After any write, read back the same key before treating the change as successful.\", expected struct RawCandidate"
+      ],
+      "prompt_tokens": 45776,
+      "cached_prompt_tokens": 45632,
+      "completion_tokens": 7786,
+      "reasoning_tokens": 7685,
+      "wall_time_ms": 164323
+    }
+  ],
+  "mutation_generation_complete": false,
+  "accepted_pool": null,
+  "wall_time_ms": 565459
+}
