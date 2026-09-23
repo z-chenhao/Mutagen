@@ -13,17 +13,30 @@ or re-prompted: the frozen protocol produced this verdict mechanically.
 
 What the run DOES establish (and is its primary scientific value):
 
-1. **The mechanical source-freeze protocol works end-to-end.** The run
-   completed its live stages with zero freeze violations; the guard ran
-   before every live stage; the pre-registered failure modes (mid-run
-   commit, modify-commit-revert, manifest tamper) are all caught —
-   including in `self-test` against real temporary git repositories.
-   0010's voiding condition cannot recur under this protocol.
-2. **The gate machinery works.** Discovery gates, verifier, and
-   whitelist checks all behaved as registered, including correctly
-   *blocking* the next stage on a failed generation.
-3. **A concrete, reproducible defect in the 0010/0011 mutator contract**
-   (schema adherence; §6 below) is identified with full raw evidence.
+1. **The mechanical source-freeze mechanism operated correctly through
+   all live stages reached by 0011-r1 (A1/B/C), and its registered tamper
+   cases pass in network-free tests.** The run completed its live stages
+   with zero freeze violations; the guard ran before every live stage
+   executed; the pre-registered failure modes (mid-run commit,
+   modify-commit-revert, manifest tamper) are all caught in `self-test`
+   against real temporary git repositories. Selection and promotion stage
+   guards are covered by implementation and tests, but were **not
+   exercised by live execution** in 0011-r1 (D/E never ran). Scoped
+   statement: within the registered 0011 live-stage command path,
+   frozen-design source drift is mechanically detected *before* the next
+   stage is permitted to issue a model request; this mechanism prevents
+   *continuation of the registered run* after frozen-path drift — it does
+   not imply that arbitrary external processes or ad-hoc requests to the
+   same model endpoint are impossible (see
+   *Unregistered endpoint smoke request* below).
+2. **The gate machinery behaved as registered through the stages
+   reached.** Discovery gates, verifier, and whitelist checks all
+   behaved as registered, including correctly *blocking* the next stage
+   on a failed generation — a **positive control result: the protocol
+   failed closed instead of accepting malformed candidates**.
+3. **A concrete, reproducible defect in the 0010/0011 mutator output
+   contract** (schema adherence; §6 below) is identified with full raw
+   evidence.
 
 ## Run identity (all re-verifiable from committed artifacts)
 
@@ -35,7 +48,7 @@ What the run DOES establish (and is its primary scientific value):
 | Run manifest SHA-256 | `3cff11c2f28d01d80fade5f8b9e175f64621cfe260e344a2308e681545fc769c` |
 | Frozen files | 20 (all crate sources, Cargo.toml/lock, design.json, tasks.json, stress-profile.json, both prompts, pre-registration doc) |
 | Model | `incoai/Qwen3.8-27B-Splash` @ `http://127.0.0.1:8000/v1` (no auth), agent temp 0.2, mutator temp 0.7 |
-| Integrity at run end | `verify-run-manifest` OK (20/20 frozen files intact, clean history) |
+| Integrity at run end | `verify-run-manifest` **PASS** (20/20 frozen files intact, clean history; still passes on the final head) |
 
 ## Stage B — Discovery (completed, verified)
 
@@ -60,11 +73,22 @@ machine-generated validation errors only):
 | 1 | 401 s | Valid JSON, **wrong key** (`"suffixes"` instead of `"candidates"`); string entries instead of `{suffix, rationale}` objects. Rejected: `wrong schema … missing field candidates` |
 | 2 | 164 s | **Correct key** (`"candidates"`) with 4 well-formed suffix strings, still **string entries, not objects**. Rejected: `invalid type: string … expected object` |
 
+Formal Stage-C stop semantics, preserved from the artifact
+(`mutation-generation.json`):
+
+- `attempt_count = 2` (the registered maximum)
+- `mutation_generation_complete = false`
+- accepted candidate pool: **none** (`candidate-pool.json` holds an empty pool)
+- Stage D (selection): **not run** — blocked by the gate
+- Stage E (promotion): **not run** — blocked by the gate
+
 The verifier then reported its 3 registered violations (incomplete
 generation carrying a null accepted pool; empty pool ≠ 4 candidates) and
 the gate **blocked selection** — the machinery behaved exactly as
-pre-registered. The generated-but-rejected content is preserved verbatim
-in `mutation-generation.json` (attempts 1–2 raw responses) and in
+pre-registered. This is a **positive control result: the protocol failed
+closed instead of accepting malformed candidates**. The
+generated-but-rejected content is preserved verbatim in
+`mutation-generation.json` (attempts 1–2 raw responses) and in
 `candidate-pool.json` (empty pool).
 
 ### Root-cause analysis (honest)
@@ -81,48 +105,104 @@ it produced semantically correct content in a non-conforming container
 correct the key name in response to the attempt-1 error, so it is
 following machine feedback — just one level short of the shape).
 
-**Defect class:** pre-registered prompt/protocol mismatch — the prompt
-promises a schema it does not specify. **This is a design defect to fix
-in a *future* experiment** (explicit schema in the frozen mutator prompt
-and/or more informative machine-generated errors, e.g. showing the exact
-expected object shape). It must not be "fixed" inside 0011: the prompt
-and validator are frozen design files, and any change would be the exact
-failure mode this experiment was built to eliminate.
+**Defect class:** the mutator output contract was **underspecified** —
+the prompt promises a schema it does not define. **This is a design
+defect to fix in a *future* experiment** (explicit schema in the frozen
+mutator prompt and shape-informative machine-generated retry errors). It
+must not be "fixed" inside 0011: the prompt and validator are frozen
+design files, and any change would be the exact failure mode this
+experiment was built to eliminate. This root cause is **not** evidence
+that the model cannot evolve, that the mutation idea is bad, or that H1
+is refuted: attempt 2 shows the model producing sound policy content that
+failed only on container shape.
 
 ### Independent-rediscovery note (anti-seeding contract)
 
 Attempt 2's rejected content — *"After any write, read back the same key
 before treating the change as successful…"* — is **semantically similar
-to 0010's selected C1** (read-after-write verification). Per the frozen
-contract this is recorded as **independent rediscovery**, not injected
-seed material: nothing from 0010 is copied into this crate, and the
-similarity is reported, not rejected. (The content was not *accepted* —
-acceptance requires schema validity — so it enters the record only as
-evidence of the model's convergence on this policy class under the
-frozen stress.)
+to 0010's selected C1** (read-after-write verification). This is recorded
+as an **independent-rediscovery diagnostic** on the strength of: fresh
+discovery tasks (V11_*), no C1 seeding, no known-repair seeding, no
+selection/promotion leakage into the mutation input, and a neutral
+mutator prompt — nothing from 0010 is copied into this crate.
+
+**Limitation:** the candidate was **rejected by schema validation**. It is
+therefore **not an accepted candidate**, was **not selected**, and was
+**not promoted**. It is a diagnostic of the model's convergence on this
+policy class under the frozen stress — *not* formal evolutionary
+evidence, and it is not upgraded to any formal claim.
 
 ## Stage D/E — Not run
 
 Selection and promotion did not execute (gate-blocked). No selection,
-promotion, or confirmatory statistics exist for 0011.
+promotion, or confirmatory statistics exist for 0011. Accordingly, the
+selection/promotion stage *guards* of the control apparatus are covered
+by implementation and tests only — they were not exercised by live
+execution in 0011-r1.
 
-## Hypotheses
+## Unregistered endpoint smoke request (disclosed; execution-channel, not source-freeze)
 
-- **H1 (evolvability): NEITHER SUPPORTED NOR REFUTED** by 0011-r1
-  (inconclusive at generation; no confirmatory data).
-- **H2 (control apparatus): SUPPORTED at the stages exercised.** The
-  loop's control machinery — frozen design single source of truth,
-  mechanical source freeze with history semantics, run identity,
-  discovery gates, independent verifiers, whitelist leak checks,
-  containment of a failed generation — all operated exactly as
-  pre-registered. In particular, the 0010 voiding condition (source
-  change mid-run) is now mechanically impossible.
+**Timeline:** after Stage A1 (run-manifest freeze) and **before**
+registered Stage B, one ad-hoc live request was sent to the model
+endpoint (`run --task E11A`, the `mutagen-exp-0011` ad-hoc smoke
+command) **outside the 0011-r1 stage-command path**, as an endpoint
+liveness check before the run.
+
+It did **not**:
+
+- use the registered E11/S11/P11 stage execution (it is not part of the
+  registered episode schedule),
+- alter any frozen source file,
+- enter the discovery artifacts, the mutation input, or any formal
+  episode count (the Stage B records were produced fresh afterwards),
+
+It is recorded here with the precise characterization:
+
+- **Not a source-freeze violation.** The frozen design remained intact
+  before, during, and after the request (`verify-run-manifest` PASS at
+  run end; 20/20 files intact). The source-freeze guard constrains
+  *frozen-design immutability*; an external request to the serving
+  endpoint does not touch that property.
+- **An execution-channel-discipline gap.** The guard controls the
+  *registered* 0011 stage-command path; it does not (and cannot)
+  constrain arbitrary external processes or ad-hoc clients talking to
+  the same serving endpoint. This smoke request demonstrates exactly
+  that boundary.
+- **No effect on the formal verdict.** The run is already INCONCLUSIVE
+  for the Stage C generation failure; this request changes nothing
+  about that verdict, the discovery evidence, or the artifact binding.
+
+**Future requirement:** confirmatory runs should use a dedicated
+execution channel and prohibit unregistered live requests to that
+endpoint after run initialization (see *Minimal next-run changes*, item
+D).
+
+## Hypotheses (formal results)
+
+- **H1 (evolvability): NEITHER SUPPORTED NOR REFUTED.** Inconclusive at
+  mutation generation; no selection or promotion data exists, so no
+  confirmatory claim is made in either direction.
+- **H2 (control apparatus): NOT FULLY TESTED / NOT FORMALLY SUPPORTED.**
+  The pre-registered H2 was an **end-to-end** control hypothesis —
+  discovery → mutation generation → selection → promotion, with all
+  claims re-derivable under frozen control. 0011-r1 exercised only
+  A0/A1/B/C and stopped before D/E, so the full H2 was **not confirmed**.
+
+The strongest defensible claim, using the observed-vs-registered
+distinction:
+
+- **Control mechanisms exercised through Stage C** (frozen-design
+  integrity, run identity, discovery gates, mutation validation failing
+  closed, downstream stages blocked, verifiers, whitelist leak checks):
+  **behaved as registered.**
+- **Full end-to-end H2** (including selection- and promotion-stage
+  control under live execution): **not confirmed** in 0011-r1.
 
 ## Honest 0010 comparison
 
 | | 0010 (voided) | 0011-r1 |
 |---|---|---|
-| Protocol integrity | **voided** (mid-run commit) | intact (frozen; verified at every stage) |
+| Protocol integrity | **voided** (mid-run commit) | intact through all live stages reached (A1/B/C; verified at each) |
 | Discovery | 18 ep, C1-generation evidence | 18 ep, 14 incumbent failures, verified |
 | Mutation generation | succeeded on attempt 1 (lucky schema adherence) | **failed schema on 2/2** → run terminated |
 | Selection / promotion | ran (post-violation; 35W/0L/13T, p≈5.8e-11 — *exploratory only*) | not run |
@@ -133,6 +213,29 @@ confirm it; it confirms that a clean confirmation is a *protocol*
 problem first, and pinpoints the one contract (output schema) that must
 be made explicit before a confirmatory rerun can be expected to clear
 Stage C.
+
+## Stage-B provenance limitation (disclosed)
+
+**Timeline fact:** Stage B (live discovery) and Stage C (live mutation
+generation) ran consecutively; their artifacts — Stage B's
+`discovery-raw.jsonl` / `discovery-summary.json` / `mutation-input.json`
+**and** Stage C's generation failure — were committed **together**
+afterwards (`8401ba9`), not separately. 0011-r1 bound the Stage-C
+generation artifact to `mutation_input_sha256`, and the final committed
+evidence verifies that binding (verifier-checked). However, the Stage-B
+mutation input was **not independently Git-committed before Stage C
+began**.
+
+Characterization:
+
+- **Not a registered 0011 protocol violation.** The frozen A0
+  pre-registration did not make "commit B before C" a formal gate; the
+  mutation input was SHA-bound and the binding verifies.
+- **But weaker provenance than desired.** A stronger stage-artifact
+  freeze would require: B live → verify B → **commit B** → freeze the
+  mutation-input hash → only *then* C live (and likewise C commit before
+  D, D commit before E). 0011-r1 had SHA binding without the
+  between-stage commit step.
 
 ## Pre-registration / mechanism inconsistency (disclosed)
 
@@ -163,14 +266,46 @@ Raw evidence: `experiments/0011-confirmatory-self-evolution/{run-manifest.json,
 discovery-raw.jsonl, discovery-summary.json, mutation-input.json,
 mutation-generation.json, candidate-pool.json}` (all committed).
 
-## What a clean confirmatory rerun (future experiment) must change
+## Minimal next-run changes (four; no more)
 
-1. State the **exact output schema** in the frozen mutator prompt
-   (`{"candidates":[{"suffix","rationale"}]}` with an example).
-2. Make machine-generated retry errors **shape-informative** (show the
-   expected object schema, not the raw serde error).
-3. Keep everything else (freeze, run identity, gates, verifiers, splits,
-   0009 stress, temperatures, limits) exactly as 0011 registered it.
+A. **Explicit mutation output schema.** The frozen mutator prompt must
+   include the exact JSON shape, with no ambiguity:
 
-**Explicitly out of scope per the 0011 spec: no Experiment 0012 is
+   ```json
+   {
+     "candidates": [
+       { "suffix": "string", "rationale": "string" },
+       { "suffix": "string", "rationale": "string" },
+       { "suffix": "string", "rationale": "string" },
+       { "suffix": "string", "rationale": "string" }
+     ]
+   }
+   ```
+
+B. **Shape-informative retry errors.** If the response is invalid, the
+   retry message states the expected object shape explicitly (still no
+   performance or selection feedback).
+
+C. **Stage-artifact freeze.** Require, for every live stage boundary:
+
+   ```text
+   B live → verify B → commit B → mutation-input hash frozen → only then C live
+   C commit before D
+   D commit before E
+   ```
+
+D. **Endpoint discipline.** After A1, no unregistered live request to
+   the dedicated model endpoint until the run terminates (a dedicated
+   execution channel for the run).
+
+Everything else — source freeze, run identity, gates, verifiers, splits,
+0009 stress, temperatures, limits — stays exactly as 0011 registered it.
+
+**Evolvable surface: unchanged.** The next clean confirmation still
+uses exactly the one registered surface — the **append-only prompt
+suffix**. No tool mutation, routing mutation, source mutation, workflow
+mutation, or memory mutation is recommended yet: first obtain one clean
+end-to-end confirmation.
+
+**Explicitly out of scope per the 0011 spec: the next experiment is not
 designed or started here.**
