@@ -1,0 +1,97 @@
+{
+  "experiment_id": "0013",
+  "run_id": "0013-r1",
+  "code_under_test_commit": "5926c6926664ba274f358039a2fbca6e74601896",
+  "frozen_design_sha256": "45c8048ba253ba3cc163e06d69c384c020fafa60d569e1d5e7323106eddaee07",
+  "files": [
+    {
+      "path": "docs/experiments/0013-deadline-safe-self-evolution.md",
+      "sha256": "6db3afd6687d1d399524f4341d97b267ebd3d5b93c2a63b6aa4d9be0ed4c0803"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/Cargo.lock",
+      "sha256": "a41cda148ce85b2eb23f3e09273f6800a10da9f7964f5b7ab2f982b5d84f2f97"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/Cargo.toml",
+      "sha256": "d94524820e75d7e2b69af141aa02b97dd001c70a8cf83063765939acfad9ea96"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/design.json",
+      "sha256": "cfc8d6dc213131e6eec31e2ae40e2e2e179589cf935ad653e03faee565dc4042"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/prompts/incumbent.md",
+      "sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/prompts/mutator.md",
+      "sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/experiment.rs",
+      "sha256": "d238be2b0584af77678102c5c9abb8cc5038e88dfb1f4728d5573ec5946f150e"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/freeze.rs",
+      "sha256": "5606d6f80ed1fc80b700d2dffc0d7848d91321be6769afa74449cdbf05f56c7a"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/kernel.rs",
+      "sha256": "0a94fd1b1f056981c40f08f48c41426126605c53f4a5d6ac4fd04dd08635984b"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/main.rs",
+      "sha256": "ce9d685b4f1d0155627a87403ee754921c20e6e0d2d6bdd7a0f2d1e67fdaeebd"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/model.rs",
+      "sha256": "8a93870c13f2bfc8e5a2f14a3f9f4a7cf49e986c41211c7335e2807c15b50137"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/mutation.rs",
+      "sha256": "91f3adee6ec1e5a35dc3666eb710699cf0da6418bd208fb278c3b9c838e5055b"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/oracle.rs",
+      "sha256": "08f5afb5b45d06dbe886e02077073a632baf55c46a3488ae4ed8de17acb39f8e"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/protocol.rs",
+      "sha256": "3dff0b3a461450be14d44db02397750abd0656180dd31d43ff44bdcd539836f3"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/selection.rs",
+      "sha256": "df08dad3df6162b6962dfe30c10c010dcd01306cf1144c287c56d242cac6e456"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/stage_freeze.rs",
+      "sha256": "e6275671cca1d2cfe93ac0d92d834b9f7e02111d6a829b13d2bbe548d014a882"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/stats.rs",
+      "sha256": "13bb44407c0bf4c1d5c189e3b5ab6793280e03ca19dd52cf84171a458225e223"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/tools.rs",
+      "sha256": "ce85c955478b7f0429556d44497c9739b236e4675161172b428d66c34e0a217a"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/src/trace.rs",
+      "sha256": "e49da1fe3fdb514dd968f9a49bdb2fef094c174365023b5fd33d7b353b2c782a"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/stress-profile.json",
+      "sha256": "d10f3c857ca6fc2c8b242cf258cfb1d3d44277da1f469e0a5e80bf8870be3733"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/tasks.json",
+      "sha256": "5bb75f92cc7bfd3f637d3418491db6ed3bc7ba12042f40d10a71c0fc49b5704c"
+    }
+  ],
+  "design_sha256": "cfc8d6dc213131e6eec31e2ae40e2e2e179589cf935ad653e03faee565dc4042",
+  "tasks_sha256": "5bb75f92cc7bfd3f637d3418491db6ed3bc7ba12042f40d10a71c0fc49b5704c",
+  "stress_profile_sha256": "d10f3c857ca6fc2c8b242cf258cfb1d3d44277da1f469e0a5e80bf8870be3733",
+  "incumbent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "mutator_prompt_sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b"
+}
