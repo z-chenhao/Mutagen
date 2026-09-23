@@ -23,7 +23,7 @@ commit.
 | `frozen_design_sha256` (21 files) | `447ce20ef797dacc838975ccddd6e52f96d05ee9b01312e81de757cf4079dcda` |
 | Model | `incoai/Qwen3.8-27B-Splash` @ `http://127.0.0.1:8000/v1` |
 | Source freeze at run start | PASS (all 21 files, pre- and post-write) |
-| Source freeze after run | PASS (re-verified after every stage) |
+| Source freeze after run | PASS (re-verified after every live stage reached, B/C/D) |
 
 ## Stage B — Discovery (18 episodes)
 
@@ -110,12 +110,16 @@ produce complete, reproducible, mechanically verifiable evidence — and
 a formal SUPPORTED / REFUTED / INCONCLUSIVE verdict — in one run?*
 
 Answer: **the frozen control surface worked exactly as designed — the
-freeze is what produced the verdict.** Every guard fired on schedule
-(source freeze before all four stages; B-freeze before C; C-freeze
-before D; stage-D freeze correctly REFUSED by the verifier), the
-explicit schema fixed the 0011 Stage-C structural failure (first-attempt
-validity), and the run terminated at the first registered integrity
-violation with no restart, no patching, and no continuation. The
+freeze is what produced the verdict.** Every guard required by the live
+stages actually reached fired on schedule: the source-freeze guard ran
+before Stages B, C, and D; the committed Stage-B freeze was verified
+before C; the committed Stage-C freeze was verified before D; and the
+Stage-D freeze was correctly refused after the registered verifier
+violation (Stage E never started, so no live Stage-E guard invocation
+occurred). The explicit schema fixed the 0011 Stage-C structural
+failure (first-attempt validity), and the run terminated at the first
+registered integrity violation with no restart, no patching, and no
+continuation. The
 experiment was designed as an end-to-end confirmation; the run did not
 complete it, because Stage E was never permitted to run. The verdict it
 produced is INCONCLUSIVE, not SUPPORTED.
