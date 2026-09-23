@@ -1,0 +1,24 @@
+{
+  "experiment_id": "0012",
+  "run_id": "0012-r1",
+  "run_manifest_sha256": "ee7b4b9c34172fe020619c9e799173b3de0408e7db11bc12b9c10dc3afbae9f6",
+  "frozen_design_sha256": "447ce20ef797dacc838975ccddd6e52f96d05ee9b01312e81de757cf4079dcda",
+  "selected_candidate_id": "C2",
+  "parent_id": "G0",
+  "candidate_pool_sha256": "7eceeb4f3841bc5cf2b85bbaec90c769d281b4f1d7decbf187fa551732cc6559",
+  "selection_raw_sha256": "463d378a79edba62774888cbad9e4b73527ee883dcc87bb7b9d1ad6834534b83",
+  "selection_summary_sha256": "29f3a8622cebfc81ea3b37b746b669ed69ae5f993a82ecd0f53cdc7101f9a3d6",
+  "mutation_input_sha256": "b150810a649e5b0b0077e9c4f3e00d7af59f3a081cd8253a4d5b47b09d461b4a",
+  "suffix": "If a read after a required write does not show the requested value, repeat the same write to the same key and read again; do not finalize until the read matches.",
+  "suffix_sha256": "c70992cfdae5e6f48b0ba5296ce09f786e224ea08bdfc0def4b035c6707ea6da",
+  "full_prompt_sha256": "0eb2003834e3eefbd4741d5b612fcf7d5589e6ff7fd49318c9b163e19854ab33",
+  "selection": {
+    "common_valid_cells": 29,
+    "baseline_failures": 27,
+    "wins": 27,
+    "losses": 0,
+    "ties": 2,
+    "net_margin": 27
+  },
+  "tie_break_path": "ranking C2(net=+27d,wins=27,losses=0) > C1(net=+17d,wins=17,losses=0) > C3(net=+14d,wins=14,losses=0) > C4(net=+1d,wins=3,losses=2); best net margin +27 → mutation displaces G0"
+}
