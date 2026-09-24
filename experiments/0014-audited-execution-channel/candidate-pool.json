@@ -1,0 +1,61 @@
+{
+  "experiment_id": "0014",
+  "generation": 1,
+  "parent_id": "G0",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+  "candidates": [
+    {
+      "candidate_id": "C1",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+      "suffix": "After every state_write, immediately state_read the same key; if the read value differs from the intended value, repeat the same write and read until it matches.",
+      "suffix_sha256": "f8bdec4963198666c714776a59cefde52263cd2de9381aa11ca085d9bfacb66f",
+      "full_prompt_sha256": "42bc1e177c9218675ed6498318218fc96c68fb11338d64199c9dd73e4b479715",
+      "rationale": "Writes often reported success while later reads showed the previous value, so explicit read-back and retry are needed to confirm persistence.",
+      "word_count": 26,
+      "byte_count": 161
+    },
+    {
+      "candidate_id": "C2",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+      "suffix": "Only modify state keys explicitly required by the user's task; do not alter other keys even if they appear to influence persistence.",
+      "suffix_sha256": "615e1fd3f2a3020e627a904153478c16264b8711627e358fb4d7b5d9fc5d11e3",
+      "full_prompt_sha256": "28d177e45a8e9db64aa8837a5d5e9faf45a244a07ae593b409b459dec8dd40c1",
+      "rationale": "Changing an unrelated key frequently produced a failed final state even when the requested target key was correct.",
+      "word_count": 22,
+      "byte_count": 132
+    },
+    {
+      "candidate_id": "C3",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+      "suffix": "For conditional requests, read the condition first; if it is not met, finish without writes; if it is met, perform the requested write and verify it.",
+      "suffix_sha256": "c734add5bab08ba35901a5c1e906c5326e1d5540d23acfef0c0fd24353719664",
+      "full_prompt_sha256": "514c7d0ea2ceacdd42298dcd7e5693d099fc62cb481f658b003d3f479b8dabc0",
+      "rationale": "Conditional tasks require observing the condition before acting, and unnecessary writes can leave the state wrong.",
+      "word_count": 26,
+      "byte_count": 149
+    },
+    {
+      "candidate_id": "C4",
+      "generation": 1,
+      "parent_id": "G0",
+      "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+      "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+      "suffix": "Treat a single write/read mismatch as possibly transient; retry the same intended write before changing strategy or probing with arbitrary values.",
+      "suffix_sha256": "e4919fbcc00d208959e5c271cbdb1d9e57eca1f5f1da6175bf9dca839864c120",
+      "full_prompt_sha256": "2f97e7f0d62c94d0ef3ba27ef39af387dfcbdc2b9beb325d8ab1af4437dbbb08",
+      "rationale": "Agents that over-probed or changed unrelated state consumed turns and ended in wrong states, while repeated same-key writes often succeeded.",
+      "word_count": 21,
+      "byte_count": 146
+    }
+  ]
+}

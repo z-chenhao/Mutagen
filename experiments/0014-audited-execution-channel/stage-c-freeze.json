@@ -1,0 +1,22 @@
+{
+  "stage": "C",
+  "run_id": "0014-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0014-mutation-generation.json",
+      "sha256": "889f93c52a790064c264dbcd1d1b4fb34f6a66614bf0d19f762b4fcf444682f2"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/candidate-pool.json",
+      "sha256": "ae62ae2b29827e82e271bc7a645075a0ec2b8bf63753da86696e1e5f6f4187ae"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-checkpoint-c.json",
+      "sha256": "06c67f5b4cb54ddac41bc925cdb102ef7334d4d8852cae3abdac0a68083bb6e9"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-ledger.jsonl",
+      "sha256": "13d3c4d8b41b551d71c2e3a85c50cbccf2a91acf8d9ac6a473097aa79b18be83"
+    }
+  ]
+}
