@@ -1,0 +1,19 @@
+{
+  "run_id": "0014-r1",
+  "session_id": "e6e2c71641d45ebf182eaa9fe1c275b6",
+  "protocol_version": "0014-audited-execution-channel-v1",
+  "final_entry_count": 2095,
+  "final_head_hash": "18d2fb3b6ae56772e79e0f740b020db19c11c394f22148fdd9b680a23d661039",
+  "forwarded_count": 2095,
+  "unauthorized_count": 0,
+  "matched_count": 906,
+  "unmatched_count": 1189,
+  "missing_recorded_count": 0,
+  "duplicate_request_ids": 0,
+  "hash_chain_violations": 0,
+  "stage_b_count": 155,
+  "stage_c_count": 1,
+  "stage_d_count": 1189,
+  "stage_e_count": 750,
+  "gateway_restarts": 0
+}
