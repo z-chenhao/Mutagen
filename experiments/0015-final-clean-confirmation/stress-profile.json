@@ -1,0 +1,9 @@
+{
+  "profile": "0009-supported-family-level-stresses",
+  "note": "Frozen carried-over stress profile from the Experiment 0009 supported result. Not recalibrated in 0015 (no calibration is permitted in 0015). Do not modify after the Stage A0 freeze.",
+  "families": {
+    "direct_set":      { "stress": "S2", "drop_first_n_writes_count": 2 },
+    "conditional_set": { "stress": "S1", "drop_first_n_writes_count": 1 },
+    "replacement":     { "stress": "S2", "drop_first_n_writes_count": 2 }
+  }
+}

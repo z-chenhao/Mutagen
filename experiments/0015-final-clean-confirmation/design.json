@@ -1,0 +1,40 @@
+{
+  "experiment_id": "0015",
+  "run_id": "0015-r1",
+  "candidate_count": 4,
+  "discovery": {
+    "repetitions_per_task": 6,
+    "min_valid_episodes": 16,
+    "min_incumbent_failures": 8
+  },
+  "selection": {
+    "repetitions_per_task": 10,
+    "conditions": ["G0", "C1", "C2", "C3", "C4"],
+    "min_common_valid_cells": 27,
+    "min_potential_information": 12
+  },
+  "promotion": {
+    "repetitions_per_task": 8,
+    "min_valid_pairs": 44,
+    "min_potential_information": 12,
+    "min_actual_informative": 12,
+    "max_infrastructure_failure_rate": 0.10,
+    "alpha": 0.05
+  },
+  "agent_temperature": 0.2,
+  "mutator_temperature": 0.7,
+  "max_model_turns": 12,
+  "max_tool_calls": 16,
+  "deadline": {
+    "episode_deadline_ms": 600000,
+    "request_timeout_ceiling_ms": 600000,
+    "deadline_return_tolerance_ms": 1000
+  },
+  "channel": {
+    "protocol_version": "0015-audited-execution-channel-v1",
+    "gateway_endpoint": "http://127.0.0.1:18150/v1",
+    "upstream_endpoint": "http://127.0.0.1:8000/v1",
+    "allowed_path": "/v1/chat/completions"
+  },
+  "model": "incoai/Qwen3.8-27B-Splash"
+}
