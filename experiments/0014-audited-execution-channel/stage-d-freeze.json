@@ -1,0 +1,26 @@
+{
+  "stage": "D",
+  "run_id": "0014-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0014-selection-summary.json",
+      "sha256": "53eeae07d1a639e74b30ff46def1c5f27eaa5964b3e2e66dab6537837de21936"
+    },
+    {
+      "path": "docs/experiments/artifacts/0014-selection-trajectories.jsonl",
+      "sha256": "5aaf87a8219675c2cfebcd9b4c52ffb2a3c843fa7a6580c554876f9b40d1eeb7"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-checkpoint-d.json",
+      "sha256": "e4080927cf2a65679059b3f2dcf622cb8a2bf72f693a1c6ec99d48409d2dce92"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-ledger.jsonl",
+      "sha256": "4393150447762be54d277ec163031cbb7bef66c3b49077c1793ad9c703aab5e8"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/selected-candidate.json",
+      "sha256": "65963bad6f027125c5ec0b78185f6545645d5c6af7c2dbcf483d57bb5106469a"
+    }
+  ]
+}
