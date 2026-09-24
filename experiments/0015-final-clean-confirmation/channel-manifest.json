@@ -1,0 +1,10 @@
+{
+  "run_id": "0015-r1",
+  "session_id": "353606e0493ceae8a7217cbeaf568ca0",
+  "protocol_version": "0015-audited-execution-channel-v1",
+  "gateway_endpoint": "http://127.0.0.1:18150/v1",
+  "upstream_endpoint": "http://127.0.0.1:8000/v1",
+  "upstream_endpoint_sha256": "87459d11adee7bce23cb37e9d210800e77403ecd52229858300b9215af0ed0fd",
+  "allowed_path": "/v1/chat/completions",
+  "ledger_genesis_hash": "b142bf84fbe9d00eef394e6e9a9db3f5feb3565b14898f0d4318015ca8f05f9c"
+}
