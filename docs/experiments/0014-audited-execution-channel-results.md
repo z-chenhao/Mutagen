@@ -16,11 +16,13 @@ generation transition.**
 
 **Code authority.** The authoritative code-under-test for run 0014-r1 is
 the frozen A0 commit `d97ba1d86ba7658932991b622c8e18093e9574c5`, as
-bound by the run manifest. The current branch/PR HEAD
-(`9d3692eca991889a335b3f6062876c155d2855f9`) is **not** the frozen 0014-r1
-source snapshot: it intentionally contains a separately committed
-post-run D1 implementation fix (two A0-frozen source files changed only
-*after* run finalization). See §5.
+bound by the run manifest. The post-run D1 implementation fix was
+committed separately at `9d3692eca991889a335b3f6062876c155d2855f9`, after
+the run had finalized and the INCONCLUSIVE verdict had already been
+recorded; subsequent branch commits only clarify the historical record.
+The current branch state is therefore intentionally **not** the frozen
+0014-r1 source snapshot, and scientific claims about 0014-r1 must always
+be evaluated against A0 `d97ba1d…`, not against the branch tip. See §5.
 
 This document is NOT source-frozen; it records what happened, exactly,
 after the frozen code commit, including the integrity event.
@@ -208,7 +210,8 @@ frozen source set: `src/experiment.rs` (include the Stage-D selection
 records in the final `all_recorded(…)`) and `src/channel.rs` (a static
 D1 regression guard in the self-test channel section). No other frozen
 file changed: the A0 → evidence-commit diff over the entire frozen set is
-empty, and the evidence-commit → HEAD diff is exactly those two files.
+empty, and the evidence-commit → D1-fix-commit diff is exactly those two
+files (any later branch commits are documentation-only).
 
 These post-run changes **do not alter or reopen 0014-r1**. They are
 follow-up implementation state only: `0014-r1` was not re-run, the
@@ -228,12 +231,14 @@ Accordingly:
 
 The branch/PR therefore intentionally contains both (1) the immutable
 historical evidence for 0014-r1 and (2) the post-run D1 implementation
-fix intended for a fresh future run. Current HEAD must not be described
-as the frozen source snapshot of 0014-r1, and no "source freeze passes at
-current HEAD" claim is made or implied by this document.
+fix (plus later documentation-only clarifications) intended for a fresh
+future run. The branch tip must not be described as the frozen source
+snapshot of 0014-r1, and no "source freeze passes at the branch tip" claim
+is made or implied by this document.
 
-**Verifier expectation at current HEAD.** Run-manifest verification
-against the *current* tree (e.g. `verify-run-manifest` from HEAD) now
+**Verifier expectation at the current branch state.** Run-manifest
+verification against the current tree (e.g. `verify-run-manifest` from the
+branch tip) now
 fails for `src/experiment.rs` / `src/channel.rs` — **expected**, because
 HEAD contains the registered post-run fix while the manifest's authority
 remains the historical A0 commit. The 0014-r1 verification authority is
