@@ -14,6 +14,14 @@ below and remains strong and valid as *post-integrity exploratory
 evidence* (promotion p ≈ 3.6 × 10⁻¹²); it is not a formally supported
 generation transition.**
 
+**Code authority.** The authoritative code-under-test for run 0014-r1 is
+the frozen A0 commit `d97ba1d86ba7658932991b622c8e18093e9574c5`, as
+bound by the run manifest. The current branch/PR HEAD
+(`9d3692eca991889a335b3f6062876c155d2855f9`) is **not** the frozen 0014-r1
+source snapshot: it intentionally contains a separately committed
+post-run D1 implementation fix (two A0-frozen source files changed only
+*after* run finalization). See §5.
+
 This document is NOT source-frozen; it records what happened, exactly,
 after the frozen code commit, including the integrity event.
 
@@ -184,7 +192,55 @@ chain is not re-run (no-restart rule; the channel session is finalized).
   the final one-to-one seal the registration requires was computed by
   defective code and failed on its face.
 
-## 5. Comparison with 0013
+## 5. Post-run D1 implementation fix and code-authority boundary
+
+The authoritative code-under-test for run 0014-r1 is the frozen A0 commit
+`d97ba1d86ba7658932991b622c8e18093e9574c5`, as bound by the run manifest
+(`code_under_test_commit`; its per-file hashes remain the run's
+verification authority and are not updated).
+
+After the run had already completed Stage E, the channel had been
+finalized, the INCONCLUSIVE verdict had been recorded, and the results
+(evidence commit `d580e112dae01608f9a731553fc79af6fb25f9fa`) committed,
+commit `9d3692eca991889a335b3f6062876c155d2855f9` applied the D1 fix for
+future runs. That commit modifies two files that were part of the A0
+frozen source set: `src/experiment.rs` (include the Stage-D selection
+records in the final `all_recorded(…)`) and `src/channel.rs` (a static
+D1 regression guard in the self-test channel section). No other frozen
+file changed: the A0 → evidence-commit diff over the entire frozen set is
+empty, and the evidence-commit → HEAD diff is exactly those two files.
+
+These post-run changes **do not alter or reopen 0014-r1**. They are
+follow-up implementation state only: `0014-r1` was not re-run, the
+channel session was not reopened, `channel-final.json` was not
+regenerated, and no model or stage was re-executed. Any scientific claim
+about 0014-r1 must be evaluated against A0 `d97ba1d…`, not against
+current branch HEAD.
+
+Accordingly:
+
+- **Run-time freeze integrity**: during the lifetime of 0014-r1, no
+  frozen source changed before the run finalized — the source-freeze
+  guards were clean through run finalization.
+- **Repository state after the run**: the branch contains the
+  intentionally committed post-run D1 fix. These are distinct facts and
+  must not be conflated.
+
+The branch/PR therefore intentionally contains both (1) the immutable
+historical evidence for 0014-r1 and (2) the post-run D1 implementation
+fix intended for a fresh future run. Current HEAD must not be described
+as the frozen source snapshot of 0014-r1, and no "source freeze passes at
+current HEAD" claim is made or implied by this document.
+
+**Verifier expectation at current HEAD.** Run-manifest verification
+against the *current* tree (e.g. `verify-run-manifest` from HEAD) now
+fails for `src/experiment.rs` / `src/channel.rs` — **expected**, because
+HEAD contains the registered post-run fix while the manifest's authority
+remains the historical A0 commit. The 0014-r1 verification authority is
+A0 `d97ba1d…`; the mismatch is reported here, not hidden by changing
+the verifier.
+
+## 6. Comparison with 0013
 
 | Dimension | 0013 (deadline-safe) | 0014 (audited channel) |
 |---|---|---|
@@ -195,35 +251,46 @@ chain is not re-run (no-restart rule; the channel session is finalized).
 | Promotion | 38W/0L/10T, p ≈ 7.3 × 10⁻¹² | 39W/0L/9T, p ≈ 3.6 × 10⁻¹² |
 | Formal verdict | INCONCLUSIVE | INCONCLUSIVE |
 
-## 6. Registered defects and follow-up
+## 7. Registered defects and follow-up
 
-1. **D1 (the D1 that set the verdict): the final reconciliation omitted
-   the selection (D) record set.** Fix (registered for the next run):
-   `cmd_promote` must include the selection records in
-   `all_recorded(…)` — the recorded side of the final seal is the union
-   of B + C + D + E. This is a frozen-code fix: it can only take effect
-   in a **new run** (new A0, new session; `0014-r1` is closed).
+1. **D1 (the defect that set the verdict): the final reconciliation
+   omitted the selection (D) record set.** The frozen 0014-r1 final
+   audit passed the D records as `&[]`, so it reconciled B + C + E (906)
+   against the ledger instead of B + C + D + E (2 095).
+   **Post-run fix status**: the D1 fix (include the selection records in
+   the final `all_recorded(…)`) and its static regression guard were
+   **implemented after the run** in commit `9d3692e…` (§5); `0014-r1`
+   was **not re-run**, the channel was **not reopened**, and
+   `channel-final.json` was **not regenerated**. The fix can only take
+   effect in a **new run** (new A0, new run identity, new channel
+   session; `0014-r1` is closed).
 2. The sealed `channel-final.json` of this run therefore carries
-   `unmatched_count = 1189` computed by the defective audit; it is
-   preserved verbatim as evidence, with the corrected recomputation
-   (2 095/2 095, §2) reported here beside it.
+   `matched_count = 906` / `unmatched_count = 1189` computed by the
+   defective audit; it is preserved verbatim as evidence, with the
+   corrected independent recomputation (2 095/2 095, §2) reported here
+   beside it. Both facts coexist: the **sealed formal audit result
+   failed** (D1), and the **independent artifact recomputation is clean**.
 
-**Follow-up experiment** (separate, to be preregistered as its own
-experiment): a 0015-style confirmatory re-run of the 0014 channel with
-the final-audit fix — expected to yield the first formally clean
-audited-channel confirmation (H4) in one run, given that this run
-already demonstrated the mechanism end-to-end with zero unauthorized
-traffic.
+**Follow-up** (registered; a separate, freshly preregistered run — not
+implemented here): a confirmatory re-run of the 0014 channel with the D1
+fix — expected to yield the first formally clean audited-channel
+confirmation (H4) in one run, given that this run already demonstrated
+the mechanism end-to-end with zero unauthorized traffic.
 
-## 7. Transparency appendix
+## 8. Transparency appendix
 
-- **Pre-A1 environment checks** (before `channel-init`, i.e. before any
-  channel session existed): one `GET http://127.0.0.1:8000/v1/models`
-  and one `POST …/v1/chat/completions` were issued directly against the
-  local 8000 proxy to verify the model transport was alive before the
-  run. These are *not* channel violations: the registered endpoint of
-  0014 is the gateway, no channel session existed yet, and the run
-  identity was not yet frozen. They are recorded here for completeness.
+- **Pre-A1 direct upstream checks.** Two direct upstream transport checks
+  occurred **before `channel-init` / before A1** — one
+  `GET http://127.0.0.1:8000/v1/models` and one
+  `POST http://127.0.0.1:8000/v1/chat/completions` issued directly
+  against the local 8000 proxy to verify the model transport was alive
+  before the run. They are disclosed for completeness. They are
+  **outside the registered post-A1 audited-channel window** (no channel
+  session existed, the run identity was not yet frozen, and the
+  registered 0014 endpoint is the gateway, not the proxy) and are **not**
+  the formal integrity event that determines the verdict. They are **not
+  part of the channel ledger** (the ledger of session `e6e2c716…` begins
+  with the first Stage-B request through the gateway).
 - No other direct upstream contact occurred at any point after the A1
   commit. After A1, the only process that ever touched the gateway was
   the registered stage commands; the only other gateway-adjacent
@@ -232,16 +299,41 @@ traffic.
 - The gateway process (pid 92614) was left in its registered finalized
   state; it refuses all further traffic with `channel_finalized`.
 
-## 8. Conclusion
+## 9. Conclusion
 
 The audited channel mechanism works: for the first time in this
 project's live runs, the execution channel was a mechanical control
 rather than a printed promise — 2 095 requests, all authorized, all
 reconciled, zero unauthorized, zero restarts, chain intact — and the
 formal verdict is **INCONCLUSIVE** only because the frozen final-audit
-code that seals the run had a record-set defect, which the sealed
+code that seals the run had a record-set defect (D1), which the sealed
 evidence now permanently records. The numerical evidence (C1: +27 at
 selection; 39W/0L, p ≈ 3.6 × 10⁻¹² at promotion; zero deadline and
 zero infrastructure failures) is strong post-integrity exploratory
-evidence. The registered next step is a new confirmatory run with the
-D1 fix.
+evidence. 0014-r1 was executed under A0 `d97ba1d…`; the current branch
+HEAD contains the separately committed post-run D1 fix. The registered
+next step is a new confirmatory run with the D1 fix.
+
+## 10. Formal hypothesis interpretation
+
+| Hypothesis | Status for 0014-r1 |
+|---|---|
+| Formal verdict | **INCONCLUSIVE** (permanent; §4) |
+| H1 (evolvability) | **NOT FORMALLY DETERMINED** — the evidence strongly supports C1 empirically (net +27 at selection; 39W/0L at promotion), but no formal clean generation transition exists. |
+| H2 (control surface) | **NOT FORMALLY SUPPORTED** — the full registered control surface produced a failing final seal (D1). |
+| H3 (deadline regression) | Carried regression check **clean** (0 deadline violations across all 264 episodes); not elevated beyond the whole-run verdict. |
+| H4 (audited channel) | Split: the **channel mechanism empirically behaved correctly** (2 095/2 095, 0 unauthorized, chain intact, 0 restarts, 0013 failure class absent); the **formal 0014 confirmation is INCONCLUSIVE** because the frozen final reconciliation failed on its face (D1). |
+
+## 11. Preregistration documentation inconsistency (disclosed)
+
+The frozen preregistration
+(`docs/experiments/0014-audited-execution-channel.md`) contains a
+documentation inconsistency: its opening section says final
+Results/Conclusion sections *may be appended* after A0, while §19 of the
+same document and the 23-file source-freeze mechanism make the
+preregistration itself byte-immutable (it is one of the 23 frozen
+files). **No append occurred during 0014-r1**: the preregistration
+remained unchanged, and all results were written to this separate,
+non-frozen results document. This wording defect did not affect execution
+or the run verdict, but future preregistrations must remove the append
+allowance.
