@@ -1702,16 +1702,27 @@ pub fn cmd_promote(args: PromoteArgs) -> Result<(), String> {
     channel::cmd_channel_finalize()?;
 
     // 0014 final channel audit: B + C + D + E reconciled against the
-    // sealed ledger; hash chain re-verified from genesis.
+    // sealed ledger; hash chain re-verified from genesis. (D1 fix,
+    // registered after run 0014-r1: the recorded side of the final
+    // seal is the UNION of all four stages — the 0014-r1 final audit
+    // omitted the D records, which the sealed evidence now records as
+    // a reconciliation mismatch and the run stands as INCONCLUSIVE.)
     let discovery_records =
         read_jsonl::<DiscoveryRecord>(&raw_path(RAW_DISCOVERY_TRAJ)).unwrap_or_default();
+    let selection_records =
+        read_jsonl::<SelectionRecord>(&raw_path(RAW_SELECTION_TRAJ)).unwrap_or_default();
     let generation_artifact = read_json(&raw_path(RAW_MUTATION_GENERATION))
         .and_then(|v| {
             serde_json::from_value::<mutation::GenerationArtifact>(v).map_err(|e| e.to_string())
         })
         .ok();
     let entries = read_ledger_rows()?;
-    let all_rec = channel::all_recorded(&discovery_records, &generation_artifact, &[], &records);
+    let all_rec = channel::all_recorded(
+        &discovery_records,
+        &generation_artifact,
+        &selection_records,
+        &records,
+    );
     let channel_v = channel::channel_violations(&crate_dir(), &all_rec)
         .map_err(|e| format!("channel verification failed: {e}"))?;
     report_channel("final", &channel_v);

@@ -1646,6 +1646,22 @@ pub fn bypass_guard_checks() -> Vec<Check> {
         "pub const REGISTERED_ENDPOINT: &str = {:?};",
         design.channel.gateway_endpoint
     ));
+    // D1 regression guard (registered after run 0014-r1): the final
+    // reconciliation in `cmd_promote` MUST include the selection (D)
+    // record set — the 0014-r1 final audit omitted it, which the
+    // sealed evidence recorded as a reconciliation mismatch and which
+    // stands as the run's formal INCONCLUSIVE driver.
+    let exp_src = std::fs::read_to_string(dir.join("src/experiment.rs")).unwrap_or_default();
+    // Whitespace-insensitive match (rustfmt may wrap the call).
+    let squashed: String = exp_src.chars().filter(|c| !c.is_whitespace()).collect();
+    let d1_wired = squashed.contains(
+        "channel::all_recorded(&discovery_records,&generation_artifact,&selection_records,&records",
+    );
+    checks.push(check_ok(
+        "final channel audit wires all four stage record sets (D1 guard)",
+        d1_wired,
+        "cmd_promote final seal must reconcile B + C + D + E (0014-r1 omitted D)".to_string(),
+    ));
     checks.push(check_ok(
         "model client bound to the registered gateway endpoint (design channel block)",
         constant_is_gateway,
