@@ -1,0 +1,24 @@
+{
+  "experiment_id": "0013",
+  "run_id": "0013-r1",
+  "run_manifest_sha256": "727e8507ea522ed802ce1d441f4b790948901618d79b2856fdcccd112f770130",
+  "frozen_design_sha256": "45c8048ba253ba3cc163e06d69c384c020fafa60d569e1d5e7323106eddaee07",
+  "selected_candidate_id": "C2",
+  "parent_id": "G0",
+  "candidate_pool_sha256": "177a15fa0b9e666373b4cc56bfa1601c8a06112043f661ba9eebda5ec878a94e",
+  "selection_raw_sha256": "1d69811ebd90934bbc50a0fa18e58518caccd0dfb8681c1d757c521cbee5bab8",
+  "selection_summary_sha256": "50e78c6941ae6e8a4763198bc7e59eee44f86c9905ac1e246e81399958e937df",
+  "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+  "suffix": "If a read-back mismatches, retry the same state_write to that same key before modifying any other key.",
+  "suffix_sha256": "0370f4a3bfdd074e0aec495ca00ad0932f4373ac9a4269701382ae27cee2b741",
+  "full_prompt_sha256": "ef522706eb16d61ad966b9cbdf14144a7e8845b82c3a56c384feec87e188dbb8",
+  "selection": {
+    "common_valid_cells": 30,
+    "baseline_failures": 27,
+    "wins": 27,
+    "losses": 0,
+    "ties": 3,
+    "net_margin": 27
+  },
+  "tie_break_path": "ranking C2(net=+27d,wins=27,losses=0) > C3(net=+26d,wins=26,losses=0) > C4(net=+18d,wins=20,losses=2) > C1(net=+12d,wins=14,losses=2); best net margin +27 → mutation displaces G0"
+}

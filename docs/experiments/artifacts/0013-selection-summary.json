@@ -1,0 +1,807 @@
+{
+  "experiment_id": "0013",
+  "phase": "selection",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "redacted_endpoint": "http://127.0.0.1:8000/v1",
+  "code_under_test_commit": "5926c6926664ba274f358039a2fbca6e74601896",
+  "run_id": "0013-r1",
+  "run_manifest_sha256": "727e8507ea522ed802ce1d441f4b790948901618d79b2856fdcccd112f770130",
+  "frozen_design_sha256": "45c8048ba253ba3cc163e06d69c384c020fafa60d569e1d5e7323106eddaee07",
+  "incumbent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "task_registry_sha256": "0f42d16f5adec1b94f6753899d243d9b36aa92c64b4e51e40a07b261db9640b2",
+  "stress_profile_sha256": "31f1ffc70d2b3d1f35c61cee82cb0775d7c451b2957aaf7299b79003683c8bdf",
+  "candidate_pool_sha256": "177a15fa0b9e666373b4cc56bfa1601c8a06112043f661ba9eebda5ec878a94e",
+  "mutation_input_sha256": "caf21259559c6d4f74498e0968edd095a9a6fa364ae74eaa2b6a13b248478bb8",
+  "episodes_total": 150,
+  "infrastructure_failures": 0,
+  "cells": [
+    {
+      "task_id": "S13A",
+      "repetition": 1,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 2,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 3,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 4,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 5,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 6,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 7,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 8,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 9,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13A",
+      "repetition": 10,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 1,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 2,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 3,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 4,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 5,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 6,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 7,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 8,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 9,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13B",
+      "repetition": 10,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 1,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 2,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 3,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 4,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 5,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 6,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 7,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 8,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 9,
+      "common_valid": true
+    },
+    {
+      "task_id": "S13C",
+      "repetition": 10,
+      "common_valid": true
+    }
+  ],
+  "common_valid_cells": 30,
+  "g0_successes_in_common_valid": 3,
+  "g0_failures_in_common_valid": 27,
+  "candidates": [
+    {
+      "candidate_id": "C1",
+      "ordinal": 1,
+      "wins": 14,
+      "losses": 2,
+      "ties": 14,
+      "net_margin": 12,
+      "diagnostic_p_exploratory": 0.004180908203125
+    },
+    {
+      "candidate_id": "C2",
+      "ordinal": 2,
+      "wins": 27,
+      "losses": 0,
+      "ties": 3,
+      "net_margin": 27,
+      "diagnostic_p_exploratory": 1.4901161193847656e-8
+    },
+    {
+      "candidate_id": "C3",
+      "ordinal": 3,
+      "wins": 26,
+      "losses": 0,
+      "ties": 4,
+      "net_margin": 26,
+      "diagnostic_p_exploratory": 2.9802322387695312e-8
+    },
+    {
+      "candidate_id": "C4",
+      "ordinal": 4,
+      "wins": 20,
+      "losses": 2,
+      "ties": 8,
+      "net_margin": 18,
+      "diagnostic_p_exploratory": 0.00012111663818359375
+    }
+  ],
+  "ranked_order": [
+    "C2",
+    "C3",
+    "C4",
+    "C1"
+  ],
+  "selected": {
+    "selected_candidate_id": "C2",
+    "incumbent_retained": false,
+    "tie_break_path": "ranking C2(net=+27d,wins=27,losses=0) > C3(net=+26d,wins=26,losses=0) > C4(net=+18d,wins=20,losses=2) > C1(net=+12d,wins=14,losses=2); best net margin +27 → mutation displaces G0"
+  },
+  "gates": {
+    "candidate_pool_frozen": true,
+    "artifact_complete": true,
+    "cyclic_order_balanced": true,
+    "common_valid_sufficient": true,
+    "potential_information_sufficient": true,
+    "selected_candidate_consistent": true
+  },
+  "condition_cost": [
+    {
+      "condition": "G0",
+      "all": {
+        "episodes": 30,
+        "oracle_successes": 3,
+        "agent_failures": 4,
+        "infrastructure_failures": 0,
+        "model_requests": 252,
+        "executed_tool_calls": 226,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 252,
+        "wall_time_ms": 873938,
+        "model_wait_time_ms": 873927,
+        "tool_execution_time_us": 2483,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "success": {
+        "episodes": 3,
+        "oracle_successes": 3,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 25,
+        "executed_tool_calls": 22,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 25,
+        "wall_time_ms": 55410,
+        "model_wait_time_ms": 55410,
+        "tool_execution_time_us": 243,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "failure": {
+        "episodes": 27,
+        "oracle_successes": 0,
+        "agent_failures": 4,
+        "infrastructure_failures": 0,
+        "model_requests": 227,
+        "executed_tool_calls": 204,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 227,
+        "wall_time_ms": 818528,
+        "model_wait_time_ms": 818517,
+        "tool_execution_time_us": 2240,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "condition": "C1",
+      "all": {
+        "episodes": 30,
+        "oracle_successes": 15,
+        "agent_failures": 4,
+        "infrastructure_failures": 0,
+        "model_requests": 272,
+        "executed_tool_calls": 246,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 272,
+        "wall_time_ms": 942222,
+        "model_wait_time_ms": 942211,
+        "tool_execution_time_us": 2727,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "success": {
+        "episodes": 15,
+        "oracle_successes": 15,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 107,
+        "executed_tool_calls": 92,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 107,
+        "wall_time_ms": 202685,
+        "model_wait_time_ms": 202681,
+        "tool_execution_time_us": 980,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "failure": {
+        "episodes": 15,
+        "oracle_successes": 0,
+        "agent_failures": 4,
+        "infrastructure_failures": 0,
+        "model_requests": 165,
+        "executed_tool_calls": 154,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 165,
+        "wall_time_ms": 739537,
+        "model_wait_time_ms": 739530,
+        "tool_execution_time_us": 1747,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "condition": "C2",
+      "all": {
+        "episodes": 30,
+        "oracle_successes": 30,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 210,
+        "executed_tool_calls": 180,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 210,
+        "wall_time_ms": 240169,
+        "model_wait_time_ms": 240162,
+        "tool_execution_time_us": 1987,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "success": {
+        "episodes": 30,
+        "oracle_successes": 30,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 210,
+        "executed_tool_calls": 180,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 210,
+        "wall_time_ms": 240169,
+        "model_wait_time_ms": 240162,
+        "tool_execution_time_us": 1987,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "failure": {
+        "episodes": 0,
+        "oracle_successes": 0,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 0,
+        "executed_tool_calls": 0,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 0,
+        "wall_time_ms": 0,
+        "model_wait_time_ms": 0,
+        "tool_execution_time_us": 0,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "condition": "C3",
+      "all": {
+        "episodes": 30,
+        "oracle_successes": 29,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 253,
+        "executed_tool_calls": 223,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 253,
+        "wall_time_ms": 535420,
+        "model_wait_time_ms": 535411,
+        "tool_execution_time_us": 2504,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "success": {
+        "episodes": 29,
+        "oracle_successes": 29,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 241,
+        "executed_tool_calls": 212,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 241,
+        "wall_time_ms": 477253,
+        "model_wait_time_ms": 477244,
+        "tool_execution_time_us": 2384,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "failure": {
+        "episodes": 1,
+        "oracle_successes": 0,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 12,
+        "executed_tool_calls": 11,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 12,
+        "wall_time_ms": 58167,
+        "model_wait_time_ms": 58167,
+        "tool_execution_time_us": 120,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "condition": "C4",
+      "all": {
+        "episodes": 30,
+        "oracle_successes": 21,
+        "agent_failures": 9,
+        "infrastructure_failures": 0,
+        "model_requests": 280,
+        "executed_tool_calls": 259,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 280,
+        "wall_time_ms": 1091458,
+        "model_wait_time_ms": 1091449,
+        "tool_execution_time_us": 2882,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "success": {
+        "episodes": 21,
+        "oracle_successes": 21,
+        "agent_failures": 0,
+        "infrastructure_failures": 0,
+        "model_requests": 172,
+        "executed_tool_calls": 151,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 172,
+        "wall_time_ms": 396329,
+        "model_wait_time_ms": 396325,
+        "tool_execution_time_us": 1615,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "failure": {
+        "episodes": 9,
+        "oracle_successes": 0,
+        "agent_failures": 9,
+        "infrastructure_failures": 0,
+        "model_requests": 108,
+        "executed_tool_calls": 108,
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "completion_tokens": null,
+        "reasoning_tokens": null,
+        "usage_reporting_requests": 108,
+        "wall_time_ms": 695129,
+        "model_wait_time_ms": 695124,
+        "tool_execution_time_us": 1267,
+        "deadline_infrastructure_failures": 0,
+        "deadline_crossing_discarded_responses": 0,
+        "max_return_overshoot_ms": 0
+      },
+      "cache": {
+        "nominal_prompt_tokens": null,
+        "cached_prompt_tokens": null,
+        "uncached_prompt_tokens": null,
+        "cache_hit_ratio": null
+      }
+    }
+  ],
+  "cache_audit": [
+    {
+      "condition": "G0",
+      "condition_position": 1,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "G0",
+      "condition_position": 2,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "G0",
+      "condition_position": 3,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "G0",
+      "condition_position": 4,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "G0",
+      "condition_position": 5,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C1",
+      "condition_position": 1,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C1",
+      "condition_position": 2,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C1",
+      "condition_position": 3,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C1",
+      "condition_position": 4,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C1",
+      "condition_position": 5,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C2",
+      "condition_position": 1,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C2",
+      "condition_position": 2,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C2",
+      "condition_position": 3,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C2",
+      "condition_position": 4,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C2",
+      "condition_position": 5,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C3",
+      "condition_position": 1,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C3",
+      "condition_position": 2,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C3",
+      "condition_position": 3,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C3",
+      "condition_position": 4,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C3",
+      "condition_position": 5,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C4",
+      "condition_position": 1,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C4",
+      "condition_position": 2,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C4",
+      "condition_position": 3,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C4",
+      "condition_position": 4,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    },
+    {
+      "condition": "C4",
+      "condition_position": 5,
+      "episodes": 6,
+      "nominal_prompt_tokens": null,
+      "cached_prompt_tokens": null,
+      "uncached_prompt_tokens": null,
+      "cache_hit_ratio": null
+    }
+  ],
+  "conclusion": {
+    "result": "continue_promotion",
+    "reason": "candidate C2 displaced G0 by the frozen lexicographic rule; promotion authorized"
+  }
+}

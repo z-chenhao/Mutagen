@@ -1,0 +1,18 @@
+{
+  "stage": "D",
+  "run_id": "0013-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0013-selection-summary.json",
+      "sha256": "50e78c6941ae6e8a4763198bc7e59eee44f86c9905ac1e246e81399958e937df"
+    },
+    {
+      "path": "docs/experiments/artifacts/0013-selection-trajectories.jsonl",
+      "sha256": "1d69811ebd90934bbc50a0fa18e58518caccd0dfb8681c1d757c521cbee5bab8"
+    },
+    {
+      "path": "experiments/0013-deadline-safe-self-evolution/selected-candidate.json",
+      "sha256": "c2c5d1ef4a53dc90373b740e98813c8d3ed185e3fefe814ceac1dd6f95a4bf69"
+    }
+  ]
+}

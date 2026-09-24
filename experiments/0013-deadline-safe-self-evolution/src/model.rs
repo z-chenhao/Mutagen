@@ -1,0 +1,260 @@
+//! Concrete synchronous client for the ONE registered model endpoint
+//! (Experiment 0013).
+//!
+//! Carried over from Experiment 0006, with the Experiment 0010/0011
+//! mutation-generation request: `complete_mutator` sends a tools-less
+//! request at the design-registered mutation temperature, while agent
+//! execution sends the registered agent request (`tool_choice = auto`,
+//! `parallel_tool_calls = false`). One registered endpoint and one
+//! registered model exist for this experiment (the endpoint URL is the
+//! named constant below — it is not a count or a gate, so it is not a
+//! design field; the per-episode deadline contract lives in
+//! `design.json` — there is no fallback model and no second network
+//! route), so there is no `ModelProvider` trait and no abstraction —
+//! exactly one concrete `ModelClient`. Synchronous on purpose: no
+//! async runtime.
+//!
+//! 0013 deadline contract: this client defines NO episode-deadline or
+//! request-timeout constants of its own (the 0012 `REQUEST_TIMEOUT` /
+//! `EPISODE_TIME_LIMIT_MS` constants are deliberately removed; the
+//! deadline values are the single source of truth in `design.json`'s
+//! `deadline` block, enforced by the kernel and verified from the
+//! artifacts). Callers pass the exact per-request timeout they
+//! registered — for agent requests the kernel computes it from the
+//! design-registered deadline; for the single mutation-generation
+//! request the runner passes the design-registered ceiling.
+//!
+//! The only network I/O performed by the whole experiment process is
+//! this HTTP request, and the ONLY callers are the four protocol-
+//! guarded live stages (`discover`/`generate`/`select`/`promote`);
+//! the binary exposes no ad-hoc live command (0011's `run --task` smoke
+//! command does not exist in 0013).
+//!
+//! Timeout classification (0013 §20): ureq 2.x surfaces transport
+//! failures as `Error::Transport` with a structured `ErrorKind` and a
+//! source chain. ureq unifies read timeouts as `io::ErrorKind`
+//! `::TimedOut` in that source chain, so the client classifies a
+//! structured timeout from the kind + source chain; a deterministic
+//! substring fallback over the rendered message covers remaining
+//! shapes (documented limitation — and formal deadline validity never
+//! depends on this flag alone: it comes from start / requested timeout
+//! / finish / response acceptance).
+
+use std::time::Duration;
+
+use serde_json::Value;
+
+use crate::protocol::{ChatRequest, Message, ModelResponse, ToolSpec, parse_response};
+
+/// Failure to complete a model request, classified for the kernel.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModelError {
+    /// A transport-level REQUEST TIMEOUT (structured classification, see
+    /// [`transport_is_timeout`]): the registered per-request timeout
+    /// expired before the endpoint returned anything.
+    Timeout(String),
+    /// Network / transport failure (connection refused, …).
+    Http(String),
+    /// Non-2xx status from the endpoint.
+    Status(usize),
+    /// 2xx response whose JSON could not be parsed into a usable
+    /// assistant message.
+    Parse(String),
+}
+
+/// The ONE registered model endpoint for this experiment (frozen local
+/// endpoint; identical to 0011). Named constant — it is neither a count
+/// nor a gate, so it is not in `design.json` — and it is reported by
+/// `preflight`. There is no fallback endpoint and no other network
+/// route in the experiment.
+pub const REGISTERED_ENDPOINT: &str = "http://127.0.0.1:8000/v1";
+
+/// A concrete client bound to one endpoint and one model.
+///
+/// The struct intentionally has no `Serialize` implementation: no
+/// artifact path can print credentials.
+pub struct ModelClient {
+    base_url: String,
+    model: String,
+    api_key: Option<String>,
+}
+
+impl ModelClient {
+    pub fn new(base_url: String, model: String, api_key: Option<String>) -> Self {
+        Self {
+            base_url,
+            model,
+            api_key,
+        }
+    }
+
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
+    /// Agent-execution request: the given tools, the caller-supplied
+    /// agent temperature (from the design manifest), `tool_choice =
+    /// auto`, `parallel_tool_calls = false`. `timeout` is the EXACT
+    /// registered per-request timeout computed by the kernel from the
+    /// design-registered deadline (`min(remaining episode budget,
+    /// deadline ceiling)`) — this module holds no deadline constant of
+    /// its own. Returns the kernel-relevant parsed response.
+    pub fn complete(
+        &self,
+        messages: &[Message],
+        tools: &[ToolSpec],
+        temperature: f64,
+        timeout: Duration,
+    ) -> Result<ModelResponse, ModelError> {
+        self.post(
+            &ChatRequest::agent(&self.model, messages.to_vec(), tools.to_vec(), temperature),
+            timeout,
+        )
+    }
+
+    /// Mutation-generation request: the same underlying model, no tools
+    /// (the mutator has no state access and no repository access), the
+    /// caller-supplied mutation temperature (from the design manifest).
+    /// Used exactly by the mutation generator; never by agent execution.
+    pub fn complete_mutator(
+        &self,
+        messages: &[Message],
+        temperature: f64,
+        timeout: Duration,
+    ) -> Result<ModelResponse, ModelError> {
+        self.post(
+            &ChatRequest::mutator(&self.model, messages.to_vec(), temperature),
+            timeout,
+        )
+    }
+
+    /// `POST {base_url}/chat/completions` with a ready request.
+    fn post(&self, request: &ChatRequest, timeout: Duration) -> Result<ModelResponse, ModelError> {
+        let body = serde_json::to_string(request)
+            .map_err(|e| ModelError::Parse(format!("request serialization: {e}")))?;
+
+        let agent = ureq::AgentBuilder::new().timeout(timeout).build();
+
+        let mut req = agent
+            .post(&format!(
+                "{}/chat/completions",
+                self.base_url.trim_end_matches('/')
+            ))
+            .set("Content-Type", "application/json");
+        if let Some(key) = &self.api_key {
+            req = req.set("Authorization", &format!("Bearer {key}"));
+        }
+
+        let response = match req.send_string(&body) {
+            Ok(r) => r,
+            Err(ureq::Error::Status(code, _)) => return Err(ModelError::Status(code as usize)),
+            Err(ureq::Error::Transport(t)) => {
+                if transport_is_timeout(&t) {
+                    return Err(ModelError::Timeout(t.to_string()));
+                }
+                return Err(ModelError::Http(t.to_string()));
+            }
+        };
+
+        // Body reads that time out are request timeouts, not malformed
+        // responses (ureq unifies read timeouts as io::ErrorKind
+        // `TimedOut`).
+        let raw: Value = response.into_json().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::TimedOut {
+                ModelError::Timeout(format!("body read timed out: {e}"))
+            } else {
+                ModelError::Parse(format!("response is not valid JSON: {e}"))
+            }
+        })?;
+
+        parse_response(&raw).map_err(ModelError::Parse)
+    }
+}
+
+/// Structured transport-timeout classification (0013 §20).
+///
+/// ureq 2.x has no dedicated `ErrorKind::Timeout` variant: it surfaces
+/// read/socket timeouts as an `io::Error` in the transport source
+/// chain with `io::ErrorKind::TimedOut` (ureq explicitly unifies these
+/// in its API). This classifier first follows the structured source
+/// chain (bounded walk); if the chain does not expose a structured
+/// `TimedOut` io::Error, a deterministic substring check over the
+/// rendered transport message is the fallback. The flag is supporting
+/// diagnostic evidence only: formal deadline validity is re-derived
+/// from start / requested timeout / finish / response-acceptance.
+pub fn transport_is_timeout(t: &ureq::Transport) -> bool {
+    // Structured: walk the source chain for a TimedOut io::Error.
+    let mut source: Option<&(dyn std::error::Error + 'static)> = std::error::Error::source(t);
+    let mut hops = 0u32;
+    while let Some(s) = source {
+        if let Some(io_err) = s.downcast_ref::<std::io::Error>() {
+            if io_err.kind() == std::io::ErrorKind::TimedOut {
+                return true;
+            }
+        }
+        source = s.source();
+        hops += 1;
+        if hops > 8 {
+            break; // the chain is a few frames deep; never walk forever
+        }
+    }
+    // Deterministic fallback over the rendered message (kind prefix
+    // included, e.g. "http://...: Network Error: operation timed out").
+    let rendered = t.to_string().to_lowercase();
+    rendered.contains("timed out") || rendered.contains("timeout")
+}
+
+/// Redact credential material from an endpoint URL for artifacts.
+///
+/// `http://user:pass@host:8080/v1` → `http://host:8080/v1`.
+pub fn redacted_endpoint(base_url: &str) -> String {
+    let (scheme, remainder) = match base_url.find("://") {
+        Some(i) => (base_url[..i].to_string(), &base_url[i + 3..]),
+        None => (String::new(), base_url),
+    };
+    let (authority, path) = match remainder.find('/') {
+        Some(i) => (&remainder[..i], &remainder[i..]),
+        None => (remainder, ""),
+    };
+    let host_port = authority
+        .rsplit_once('@')
+        .map(|(_, h)| h.to_string())
+        .unwrap_or_else(|| authority.to_string());
+    format!("{scheme}://{host_port}{path}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redacts_userinfo_from_endpoint() {
+        assert_eq!(
+            redacted_endpoint("http://user:secret@host:8080/v1"),
+            "http://host:8080/v1"
+        );
+    }
+
+    #[test]
+    fn keeps_plain_endpoint_intact() {
+        assert_eq!(
+            redacted_endpoint("http://127.0.0.1:8000/v1"),
+            "http://127.0.0.1:8000/v1"
+        );
+    }
+
+    #[test]
+    fn error_variants_carry_no_response_bodies() {
+        // The struct holds only codes / transport messages; no
+        // `Serialize` impl exists, so no artifact path can print bodies
+        // or credentials.
+        let _ = ModelError::Status(500);
+        let _ = ModelError::Http("connection refused".into());
+        let _ = ModelError::Timeout("operation timed out".into());
+        let _ = ModelError::Parse("no choices".into());
+    }
+}
