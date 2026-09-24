@@ -8,9 +8,10 @@ episodes (18 discovery + 150 selection + 96 promotion) plus one
 mutation-generation request, **2 172 agent model requests + 1 mutator
 request = 2 173 total live model requests** — and every stage's verifier,
 guard, and gate was clean. However, a post-hoc execution-history audit
-(§4 below) established that **an unregistered HTTP request reached the
-registered endpoint after Stage A1 and before Stage B**, outside the
-registered stage path. Under the inherited 0012 execution-channel
+(§4 below) established that, after A1 and before Stage B, **one ad-hoc
+endpoint availability probe issued two unregistered HTTP GET requests to
+`/v1/models`** on the registered endpoint, outside the registered stage
+path. Under the inherited 0012 execution-channel
 discipline ("after this commit: no unregistered live model requests …
 start Stage B directly"), the run is not a formally clean run. The
 formal verdict is therefore **INCONCLUSIVE**, not SUPPORTED. The
@@ -143,18 +144,22 @@ exactly, the following sequence after the Stage-A1 commit
    list).
 3. `cargo run -- discover` — registered Stage B.
 
-**Classification.** The availability check **was an HTTP request to the
-registered endpoint** — a read-only `GET /v1/models` metadata list: no
-inference call, no prompt or task data sent, no state change, and
-nothing from it entered any artifact. But the control surface it
-violated does not carve out metadata reads: the 0012 discipline (which
-0013 carried forward) is "no unregistered endpoint calls … the only live
-commands are the four registered stages", and the Stage-A1 output
-itself stated: *"AFTER THIS COMMIT: no unregistered live model requests
-(zero smoke/debug requests); start Stage B directly."* The models-list
-probe was an unregistered endpoint access after A1 and outside the
-registered stage path, and **execution-channel integrity is therefore
-failed**.
+**Classification.** The single availability-probe action **issued two
+HTTP requests to the registered endpoint** — two read-only
+`GET /v1/models` metadata queries: no inference call, no prompt or task
+data sent, no state mutation, and nothing from either entered any
+artifact. Both requests were read-only model-list metadata queries and
+did not affect experiment artifacts or model inference state. However,
+the inherited channel discipline did not permit unregistered endpoint
+access after A1 — the 0012 discipline (which 0013 carried forward) is
+"no unregistered endpoint calls … the only live commands are the four
+registered stages", and the Stage-A1 output itself stated: *"AFTER THIS
+COMMIT: no unregistered live model requests (zero smoke/debug requests);
+start Stage B directly."* — so both requests constitute an
+execution-channel integrity violation. One ad-hoc endpoint-probe action
+consisting of two HTTP GET requests; **execution-channel integrity is
+therefore failed because two unregistered endpoint requests occurred
+outside the registered B/C/D/E stage path**.
 
 **Protocol-documentation weakness (recorded honestly).** Experiment 0013
 intended to carry forward the 0012 endpoint-discipline control
@@ -181,16 +186,16 @@ INCONCLUSIVE, and this audit is the evidence that maps here.
 
 ## 5. Formal conclusion
 
-**INCONCLUSIVE** — execution-channel integrity failure (one
-unregistered `GET /v1/models` probe to the registered endpoint after
-A1, before Stage B; §4).
+**INCONCLUSIVE** — execution-channel integrity failure (one ad-hoc
+endpoint availability probe after A1, before Stage B, that issued two
+unregistered HTTP GET requests to `/v1/models`; §4).
 
 - **H1 (evolvability):** **NOT FORMALLY DETERMINED** under a clean run.
   The numerical evidence strongly favors evolution — C2 displaced G0 at
   selection (net +27; 27W/0L/3T) and promoted 47/48 vs G0 9/48,
   38W/0L/10T, p = 7.275957614183426 × 10⁻¹² — but the run cannot serve
   as the first formally clean autonomous generation transition, because
-  an unregistered endpoint request occurred after A1 and outside the
+  two unregistered endpoint requests occurred after A1 and outside the
   registered stage path. There is **no formal G0 → C2 generation
   transition**; C2 remains a generation-1 *exploratory* candidate of
   this experiment.
