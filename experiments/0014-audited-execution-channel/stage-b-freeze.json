@@ -1,0 +1,26 @@
+{
+  "stage": "B",
+  "run_id": "0014-r1",
+  "artifacts": [
+    {
+      "path": "docs/experiments/artifacts/0014-discovery-summary.json",
+      "sha256": "5d9348296f34dc8bf207bf9cd2559b7e60254491f8bf2c9afc5d423d762a9980"
+    },
+    {
+      "path": "docs/experiments/artifacts/0014-discovery-trajectories.jsonl",
+      "sha256": "73ed123165c2a76dd62175f369ec0705cf11236f0a7d8099d027077de82ca072"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-checkpoint-b.json",
+      "sha256": "2d96f3147983b0a54cfc1c9c167441d64ee5d755d46c60b7346e0d52d91fc87c"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/channel-ledger.jsonl",
+      "sha256": "ceca8e4bde25c16449844388fc86b4a563ab89adeeb20d44e20fe4e8e662d8d0"
+    },
+    {
+      "path": "experiments/0014-audited-execution-channel/mutation-input.json",
+      "sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f"
+    }
+  ]
+}

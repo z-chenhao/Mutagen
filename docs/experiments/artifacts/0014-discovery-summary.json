@@ -1,0 +1,76 @@
+{
+  "experiment_id": "0014",
+  "phase": "discovery",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "redacted_endpoint": "http://127.0.0.1:18140/v1",
+  "code_under_test_commit": "d97ba1d86ba7658932991b622c8e18093e9574c5",
+  "run_id": "0014-r1",
+  "run_manifest_sha256": "0b4229419b77aecdbf5690b2b383c35812599ef67e94938708f85e9da83d9c52",
+  "frozen_design_sha256": "e86fb91e94ac5f66c7af7e5f6df4a2bbaebdaa915a20737b5d57536c75478728",
+  "incumbent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "task_registry_sha256": "5497030a373ccd6af51fcf0761df2a258d1c1ce891b0af3d2dba5b5b9eb98606",
+  "stress_profile_sha256": "3a42346227718bfd1573f252e56cebacf6d42f8b796b22941dfd332496eefe9c",
+  "episodes_total": 18,
+  "valid_episodes": 18,
+  "infrastructure_failures": 0,
+  "agent_failures": 3,
+  "oracle_successes": 4,
+  "incumbent_failures": 14,
+  "mutation_input_sha256": "f7b2b8e932c87d3589a7e70d478989eb934a5874d241e9ebdaa874c50fe2fe2f",
+  "gates": {
+    "artifact_complete": true,
+    "mutation_input_whitelist": true,
+    "valid_episodes_sufficient": true,
+    "incumbent_failures_sufficient": true
+  },
+  "per_task": [
+    {
+      "task_id": "E14A",
+      "family": "direct_set",
+      "stress_level": "S2",
+      "episodes": 6,
+      "valid": 6,
+      "infrastructure_failures": 0,
+      "oracle_successes": 2
+    },
+    {
+      "task_id": "E14B",
+      "family": "conditional_set",
+      "stress_level": "S1",
+      "episodes": 6,
+      "valid": 6,
+      "infrastructure_failures": 0,
+      "oracle_successes": 1
+    },
+    {
+      "task_id": "E14C",
+      "family": "replacement",
+      "stress_level": "S2",
+      "episodes": 6,
+      "valid": 6,
+      "infrastructure_failures": 0,
+      "oracle_successes": 1
+    }
+  ],
+  "cost": {
+    "episodes": 18,
+    "oracle_successes": 4,
+    "agent_failures": 3,
+    "infrastructure_failures": 0,
+    "model_requests": 155,
+    "executed_tool_calls": 140,
+    "nominal_prompt_tokens": null,
+    "cached_prompt_tokens": null,
+    "uncached_prompt_tokens": null,
+    "completion_tokens": null,
+    "reasoning_tokens": null,
+    "usage_reporting_requests": 155,
+    "wall_time_ms": 479855,
+    "model_wait_time_ms": 479850,
+    "tool_execution_time_us": 1926,
+    "deadline_infrastructure_failures": 0,
+    "deadline_crossing_discarded_responses": 0,
+    "max_return_overshoot_ms": 0
+  },
+  "proceed_to_mutation_generation": true
+}
