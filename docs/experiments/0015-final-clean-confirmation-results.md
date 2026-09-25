@@ -3,10 +3,13 @@
 ## Status
 
 **Executed (Stages A0, A1, B, C, D; E not run). Formal verdict:
-INCONCLUSIVE** — Stage D's sealed-channel one-to-one reconciliation
-failed: **9 authorized/forwarded Stage-D ledger rows have no matching
-experiment record**, and the selection common-valid gate failed (21 < 27
-cells, a direct consequence of the same 9 infrastructure failures).
+INCONCLUSIVE** — Stage D's one-to-one channel reconciliation (the
+Stage-D verifier, confirmed by independent artifact-to-ledger
+recomputation; the gateway final seal itself carries no reconciliation
+result, §4) failed: **9 authorized/forwarded Stage-D ledger rows have
+no matching bound experiment record**, and the selection common-valid
+gate failed (21 < 27 cells, a direct consequence of the same 9
+infrastructure failures).
 Root cause: a **latent defect carried byte-identical from the 0013/0014
 channel integration, first triggered by real transport failures** (the
 frozen kernel stamps the audited-channel binding into a model-request
@@ -45,8 +48,12 @@ after the frozen code commit.
 
 Commit chain: A0 (preregistration, 23 frozen files + README + gitignore)
 → A1 (run manifest + channel manifest) → B `864f4a1` → C `ec2ab99` →
-D evidence + channel final seal (this commit). `channel-state.json` and
-the control socket are operational and gitignored.
+D evidence + channel final seal (this commit). The post-D
+`channel-finalize` is a zero-HTTP closeout/seal operation: it seals the
+ledger and exits the gateway. It does **not** imply that the Stage-E /
+promotion-tail B+C+D+E final reconciliation ran — it did not (Stage E
+never started). `channel-state.json` and the control socket are
+operational and gitignored.
 
 ## 2. Source integrity (final audit)
 
@@ -73,45 +80,58 @@ the control socket are operational and gitignored.
 
 ## 4. The audited channel, observed
 
-Sealed ledger: **1 350 rows** (gateway `channel-final.json`):
+### 4.1 Gateway final seal — PASS as a transport/channel seal
 
-| Stage | Ledger rows (authorized/forwarded) | Recorded (artifacts) | Match |
-|---|---|---|---|
-| B Discovery | 154 / 154 | 154 | **exact** |
-| C Mutation | 1 / 1 | 1 | **exact** |
-| D Selection | 1 195 / 1 195 | 1 186 | **9 UNMATCHED** |
-| E Promotion | 0 / 0 | 0 (stage not run) | — |
-| **Total** | **1 350 / 1 350** | **1 341** | **1 341 / 1 350** |
+The gateway finalized successfully: `channel-final.json` is sealed with
+`final_entry_count` 1 350, `forwarded_count` 1 350,
+`unauthorized_count` 0, `hash_chain_violations` 0,
+`gateway_restarts` 0, `finalized` `true` (final head `dbed2085…`;
+gateway pid 82153, single process from init through finalize, origin-pid
+continuity held at every stage gate). All 1 350 ledger rows are
+authorized and forwarded; duplicate request ids: 0.
 
 - **Unauthorized rows: 0.** No readiness probe, no `/v1/models`, no
   smoke request, no ad-hoc request of any kind ever reached the gateway
   (the 0013 failure class did not occur; §25 no-probe discipline held).
 - Hash chain: intact — 0 chain violations at the final seal (genesis =
   manifest self-seal `b142bf84…f05f9c`).
-- Gateway restarts: **0** (single pid 82153 from init through
-  finalize; origin-pid continuity held at every stage gate).
-- Duplicate request ids: 0.
-- Final seal counts at gateway seal time: forwarded 1 350,
-  unauthorized 0, chain violations 0, restarts 0, finalized `true`.
-  The sealed document's reconciliation fields are left unpopulated
-  because the frozen final reconciliation (the `cmd_promote` tail,
-  which includes the D1 fix) runs only after Stage E — which was never
-  reached.
+- Gateway restarts: **0**.
 
-**Independent recomputation** (re-derived from the committed artifacts,
+Because the run stopped at Stage D, the normal **B + C + D + E final
+reconciliation in the promotion tail** (the `cmd_promote` tail, which
+includes the D1 fix) **was never executed**, so `channel-final.json`
+retains its zero-valued reconciliation fields (`matched_count` /
+`unmatched_count` / `missing_recorded_count` = 0). **The gateway final
+seal did not itself compute 1 341 matched / 9 unmatched** — the
+distinction matters and is used consistently below.
+
+### 4.2 Stage-D / independent one-to-one reconciliation — FAIL
+
+Separately, the **Stage-D channel verifier** and an **independent
+post-run recomputation** (committed artifacts,
 `(stage, request_id, request_body_sha256)` one-to-one against the
-sealed ledger): B 154/154, C 1/1, D **1 186/1 195 (9 unmatched
-forwarded rows)**, E 0/0 → total 1 341 recorded vs 1 350 forwarded.
-The sealed final document and the independent recomputation **disagree
-on reconciliation** — in a formally clean run they must agree; they do
-not. This is the formal INCONCLUSIVE driver.
+sealed ledger) both found:
 
-**The 9 unmatched rows** (all Stage D, all `POST /v1/chat/completions`,
+| Stage | Ledger rows (forwarded) | Bound experiment records | Match |
+|---|---|---|---|
+| B Discovery | 154 | 154 | **exact** |
+| C Mutation | 1 | 1 | **exact** |
+| D Selection | 1 195 | 1 186 | **9 UNMATCHED** |
+| E Promotion | 0 | 0 (stage not run) | — |
+| **Total** | **1 350** | **1 341** | **9 unmatched** |
+
+bound recorded requests: **1 341** · forwarded ledger rows:
+**1 350** · unmatched forwarded: **9** · missing recorded: **0** ·
+duplicate IDs: **0**. This reconciliation failure is one of the formal
+INCONCLUSIVE drivers.
+
+**The 9 unmatched forwarded rows** (all Stage D, all `POST /v1/chat/completions`,
 all `authorized: true, forwarded: true`, all `status_class: "0xx"` —
 the upstream local proxy dropped the connection before any HTTP status
 was received, 1.7–2.2 s after request start; none is a structured
 timeout): ledger rows 197, 227, 301, 513, 691, 1097, 1175, 1202, 1277
-(request ids `0015-r1-D-000042/72/146/358/536/942/1020/1047/1122`).
+(request ids `0015-r1-D-000042/72/146/358/536/942/1020/1047/1122`;
+found by the Stage-D verifier and the independent recomputation).
 Each corresponds to exactly one experiment record with an **empty**
 channel binding (`channel_request_id: ""`, `request_body_sha256: ""`,
 `response_accepted: false`, termination `http_error`): episodes
@@ -160,12 +180,12 @@ activated by real infrastructure flakiness.
 
 **B — Discovery (18 episodes, 154 requests, wall 932 s).** 18/18
 valid; 0 infrastructure; 8 agent failures; 1 oracle success; **17
-incumbent failures** (gate ≥ 8 ✓; valid gate ≥ 16 ✓). Channel B: 154/
-154 exact. B frozen.
+incumbent failures** (gate ≥ 8 ✓; valid gate ≥ 16 ✓). Channel B:
+154/154 exact. B stage-frozen.
 
 **C — Mutation generation (1 attempt, 1 request, wall 346 s).** All
 four candidates structurally valid on the first attempt (no retry).
-Channel C: 1/1 exact. C frozen.
+Channel C: 1/1 exact. C stage-frozen.
 
 **D — Selection (150 episodes, 1 195 requests, wall 3 474 s).**
 9 infrastructure failures (all `http_error`, all transport drops,
@@ -177,20 +197,25 @@ the 21 common-valid cells:
 
 | Candidate | W | L | T | Net |
 |---|---|---|---|---|
-| **C2 (would have been selected)** | 15 | 0 | 6 | **+15** |
+| **C2 (provisional ranking winner)** | 15 | 0 | 6 | **+15** |
 | C1 | 7 | 0 | 14 | +7 |
 | C4 | 8 | 4 | 9 | +4 |
 | C3 | 7 | 4 | 10 | +3 |
 
-Frozen ranking `C2 > C1 > C4 > C3`; C2 net margin +15 > 0 → a
-non-G0 selection was made and frozen into `selected-candidate.json`
-before the channel check ran. **But** the Stage-D channel verifier
-then reported the 9-row reconciliation mismatch (§4) and the
-`common_valid_sufficient` gate failed → **the run is INCONCLUSIVE;
-Stage E (promotion) was never run.** The selection tallies are
-post-integrity exploratory evidence only.
+**Provisional selection winner: C2.** The deterministic selection
+ranking provisionally identified C2 as the best non-G0 candidate
+(15W/0L/6T, net +15; ranked order `C2 > C1 > C4 > C3`), and
+`selected-candidate.json` was written before the Stage-D integrity/gate
+checks completed. However, Stage D failed the `common_valid_sufficient`
+(21 < 27) and channel-reconciliation (9 unmatched, §4.2) gates, so **no
+Stage-D freeze was created**. **C2 therefore never became a formally
+frozen or promotion-eligible selected candidate** (Stage-D freeze:
+absent; promotion eligibility: none; formally selected candidate:
+none). The selection tallies are post-integrity exploratory evidence
+only.
 
-**E — Promotion: not run** (96 episodes / 48 pairs never executed).
+**E — Promotion: NOT RUN** (96 episodes / 48 pairs never executed;
+no candidate was promotion-eligible).
 
 ## 7. Deadline integrity (H3 regression)
 
@@ -238,9 +263,10 @@ history influenced the selection itself.
 
 - **H1** (incumbent displaced by a discovery-generated candidate):
   **NOT FORMALLY DETERMINED** — the full B→C→D→E chain did not
-  complete; the (exploratory) D selection would have displaced G0
-  (C2, net +15), but E never ran, so no formal promotion evidence
-  exists.
+  complete; the (exploratory, never stage-frozen) D ranking
+  provisionally placed C2 first (net +15), but C2 was never a formally
+  frozen or promotion-eligible candidate and E never ran, so no formal
+  promotion evidence exists.
 - **H2** (the frozen control surface mechanically produces a defensible
   three-way verdict): **SUPPORTED** — source freeze, stage-freeze
   chain, no-restart rule, deadline contract, and the audited channel
@@ -265,9 +291,11 @@ history influenced the selection itself.
 
 ## 11. Verdict and its consequences
 
-**Formal verdict: INCONCLUSIVE** (channel reconciliation mismatch +
-common-valid gate failure, both downstream of 9 real transport
-failures hitting the D2 frozen-code accounting gap).
+**Formal verdict: INCONCLUSIVE** (Stage-D one-to-one reconciliation
+failure — 9 unmatched forwarded rows — + the selection common-valid
+gate failure, both downstream of 9 real transport failures hitting the
+D2 frozen-code accounting gap; the gateway final seal itself passed,
+§4.1).
 
 - Formal generation transition: **none**.
 - Model/stage re-runs: **none** (no-restart rule; the run identity
