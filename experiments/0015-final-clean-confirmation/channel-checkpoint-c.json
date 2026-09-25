@@ -1,0 +1,10 @@
+{
+  "run_id": "0015-r1",
+  "stage": "C",
+  "ledger_entry_count": 155,
+  "ledger_head_hash": "42ff9d639f83d4bba46f6ff522055c449b321fda058257a6bb7681b43912af3e",
+  "authorized_forwarded_count": 155,
+  "unauthorized_count": 0,
+  "matched_request_count": 155,
+  "unmatched_forwarded_count": 0
+}

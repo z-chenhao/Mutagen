@@ -1,0 +1,92 @@
+{
+  "experiment_id": "0015",
+  "run_id": "0015-r1",
+  "run_manifest_sha256": "342db85f57155deaa6cf115610696d722e572509c5fc26e793b9d6731b433a0f",
+  "frozen_design_sha256": "faa5b5674ee6b7252b8109e1a41a5a73f1f2f47b5633bdb9954f47dc547057b4",
+  "model": "incoai/Qwen3.8-27B-Splash",
+  "temperature": 0.7,
+  "redacted_endpoint": "http://127.0.0.1:18150/v1",
+  "code_under_test_commit": "5598d31d33329aed663ab6dc3bd41982920445c2",
+  "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+  "mutator_prompt_sha256": "8b3426086f4ef81e584b16ec80842d7ce45e664fb5728bf1139a4d1d89523e6b",
+  "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+  "attempt_count": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "raw_response": "\n\n{\n  \"candidates\": [\n    {\n      \"suffix\": \"After every state_write, read back the same key before proceeding; do not treat a write response as confirmation.\",\n      \"rationale\": \"Several runs accepted a successful write response but the final state reverted, so read-back verification is needed.\"\n    },\n    {\n      \"suffix\": \"If a read-back after a write does not match the intended value, retry the same write a few times before changing any other key.\",\n      \"rationale\": \"A successful run achieved the target by repeated writes to the requested key while leaving the other key unchanged.\"\n    },\n    {\n      \"suffix\": \"Only write to keys the user explicitly requests; if a diagnostic write to another key is unavoidable, restore its previously observed value before finishing.\",\n      \"rationale\": \"Many runs that changed an unrequested key were marked unsuccessful, while a run that preserved it succeeded.\"\n    },\n    {\n      \"suffix\": \"If the available state has only a few keys, read all of them before the first write and before the final answer.\",\n      \"rationale\": \"Agents often inspected the other key too late or not at all, missing potential dependencies and the actual final state.\"\n    }\n  ]\n}",
+      "structurally_valid": true,
+      "validation_errors": [],
+      "prompt_tokens": 45919,
+      "cached_prompt_tokens": 0,
+      "completion_tokens": 6700,
+      "reasoning_tokens": 6427,
+      "wall_time_ms": 345512,
+      "channel_request_id": "0015-r1-C-000001",
+      "request_body_sha256": "41cb5d8a8246e10baec3926b908634164506d7af2d4f5880ca95471bcec75ca1"
+    }
+  ],
+  "mutation_generation_complete": true,
+  "accepted_pool": {
+    "experiment_id": "0015",
+    "generation": 1,
+    "parent_id": "G0",
+    "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+    "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+    "candidates": [
+      {
+        "candidate_id": "C1",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+        "suffix": "After every state_write, read back the same key before proceeding; do not treat a write response as confirmation.",
+        "suffix_sha256": "abf724eca6d72b73509cb0c1d4dc5a30af9a36b93353e5f806a6422bf7a8cc23",
+        "full_prompt_sha256": "19ce31aff37006627509244fb72bf91305eb94821fade9c075fe6ae693d5b31f",
+        "rationale": "Several runs accepted a successful write response but the final state reverted, so read-back verification is needed.",
+        "word_count": 18,
+        "byte_count": 113
+      },
+      {
+        "candidate_id": "C2",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+        "suffix": "If a read-back after a write does not match the intended value, retry the same write a few times before changing any other key.",
+        "suffix_sha256": "c762a326b0c9f7a8c720d7e094a3bd6cce4639d139b882d34b2e32a991ae3af9",
+        "full_prompt_sha256": "5ada8ad51d3f1d1793fbdddba0f987e4980bbb86934ff4964c11672bef3e1f29",
+        "rationale": "A successful run achieved the target by repeated writes to the requested key while leaving the other key unchanged.",
+        "word_count": 24,
+        "byte_count": 127
+      },
+      {
+        "candidate_id": "C3",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+        "suffix": "Only write to keys the user explicitly requests; if a diagnostic write to another key is unavoidable, restore its previously observed value before finishing.",
+        "suffix_sha256": "ea6675e8fcf77b7d31e112ccdd4ef049fed798f1ab93b7531070650dd5f618c3",
+        "full_prompt_sha256": "21dad785ff861dba5e50ca71a496451e19fc0b7c2d76f28fc54c4a7b186a7a88",
+        "rationale": "Many runs that changed an unrequested key were marked unsuccessful, while a run that preserved it succeeded.",
+        "word_count": 24,
+        "byte_count": 157
+      },
+      {
+        "candidate_id": "C4",
+        "generation": 1,
+        "parent_id": "G0",
+        "parent_prompt_sha256": "cba4b0f156b4cd82ebb65fb4e01757f3f15daf4a804be4317c9529fcd48b8def",
+        "mutation_input_sha256": "b7ebec0983af1aca1a81aa26def893da7dcf03f62be49cd9475aed8ab29245c6",
+        "suffix": "If the available state has only a few keys, read all of them before the first write and before the final answer.",
+        "suffix_sha256": "e2fdc76ab7337648db7f8b549d8ad7ebd02307d5c27d8547a373731926fa19ef",
+        "full_prompt_sha256": "b488cdcbe25b0a0c0a2746939a2409d5514bef58b4605875236ebf5c180849ba",
+        "rationale": "Agents often inspected the other key too late or not at all, missing potential dependencies and the actual final state.",
+        "word_count": 22,
+        "byte_count": 112
+      }
+    ]
+  },
+  "wall_time_ms": 345512
+}

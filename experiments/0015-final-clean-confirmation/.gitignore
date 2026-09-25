@@ -1,0 +1,7 @@
+/target
+*.log
+# Operational channel process state (recreated by the gateway; never
+# committed). The channel MANIFEST, LEDGER, CHECKPOINTS, and FINAL
+# document are evidence and ARE committed.
+channel-state.json
+channel-control.sock
